@@ -5,33 +5,32 @@ let dadosOriginais = [];
 let charts = {};
 
 /* =========================================================
-   PALETA DE CORES (ALINHADA AO DESIGN FINAL)
+   CORES (APENAS PARA GRÁFICOS)
 ========================================================= */
-const CORES = [
-  "#ff4d6d", // coral
-  "#ff7a00", // laranja
-  "#38bdf8", // azul claro
+const CORES_GRAFICOS = [
+  "#ff4f70", // rosa principal
+  "#ff8a00", // laranja
+  "#3cc3ff", // azul
   "#a855f7", // roxo
-  "#facc15", // dourado
+  "#facc15", // amarelo
   "#22c55e"  // verde
 ];
 
 /* =========================================================
    UPLOAD DO EXCEL
 ========================================================= */
-document.getElementById("excelFile").addEventListener("change", function (event) {
-  const file = event.target.files[0];
+document.getElementById("excelFile").addEventListener("change", e => {
+  const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function (e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
+  reader.onload = evt => {
+    const data = new Uint8Array(evt.target.result);
+    const wb = XLSX.read(data, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
     dadosOriginais = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
-    inicializarFiltros(dadosOriginais);
+    inicializarFiltros();
     aplicarFiltros();
   };
   reader.readAsArrayBuffer(file);
@@ -40,29 +39,27 @@ document.getElementById("excelFile").addEventListener("change", function (event)
 /* =========================================================
    FILTROS
 ========================================================= */
-function inicializarFiltros(dados) {
-  preencherSelect("filtroProvincia", dados, "Provincia");
-  preencherSelect("filtroServico", dados, "Servico");
-  preencherSelectAno("filtroAno", dados);
+function inicializarFiltros() {
+  preencherSelect("filtroProvincia", "Provincia");
+  preencherSelect("filtroServico", "Servico");
+  preencherSelectAno();
 
   document.getElementById("filtroDistrito").innerHTML =
     `<option value="">Todos</option>`;
 }
 
-["filtroProvincia", "filtroDistrito", "filtroServico", "filtroAno"]
-  .forEach(id =>
-    document.getElementById(id).addEventListener("change", aplicarFiltros)
-  );
+["filtroProvincia","filtroDistrito","filtroServico","filtroAno"]
+  .forEach(id => document.getElementById(id).addEventListener("change", aplicarFiltros));
 
 document.getElementById("filtroProvincia").addEventListener("change", () => {
-  const provincia = document.getElementById("filtroProvincia").value;
+  const provincia = filtroProvincia.value;
 
-  const dadosFiltrados = provincia
+  const base = provincia
     ? dadosOriginais.filter(d => d.Provincia === provincia)
     : dadosOriginais;
 
-  preencherSelect("filtroDistrito", dadosFiltrados, "Distrito");
-  document.getElementById("filtroDistrito").value = "";
+  preencherSelect("filtroDistrito", "Distrito", base);
+  filtroDistrito.value = "";
   aplicarFiltros();
 });
 
@@ -70,160 +67,85 @@ document.getElementById("filtroProvincia").addEventListener("change", () => {
    APLICAR FILTROS
 ========================================================= */
 function aplicarFiltros() {
-  const provincia = document.getElementById("filtroProvincia").value;
-  const distrito = document.getElementById("filtroDistrito").value;
-  const servico = document.getElementById("filtroServico").value;
-  const ano = document.getElementById("filtroAno").value;
+  const provincia = filtroProvincia.value;
+  const distrito  = filtroDistrito.value;
+  const servico   = filtroServico.value;
+  const ano       = filtroAno.value;
 
   const filtrados = dadosOriginais.filter(d => {
     const dt = normalizarData(d.Data_Consulta);
-    const anoConsulta = dt ? dt.getFullYear() : null;
+    const anoC = dt ? dt.getFullYear() : null;
 
     return (
       (!provincia || d.Provincia === provincia) &&
-      (!distrito || d.Distrito === distrito) &&
-      (!servico || d.Servico === servico) &&
-      (!ano || anoConsulta == ano)
+      (!distrito  || d.Distrito === distrito) &&
+      (!servico   || d.Servico === servico) &&
+      (!ano       || anoC == ano)
     );
   });
 
-  motorIndicadoresSaude(filtrados);
+  calcularIndicadores(filtrados);
 }
 
 /* =========================================================
-   MOTOR DE INDICADORES
+   INDICADORES
 ========================================================= */
-function motorIndicadoresSaude(dados) {
+function calcularIndicadores(d) {
+  const total = d.length;
+  const primeira = d.filter(x => String(x.Tipo_Consulta).toLowerCase().includes("primeira")).length;
+  const seguimento = d.filter(x => String(x.Tipo_Consulta).toLowerCase().includes("seguimento")).length;
+  const taxaSeg = total ? ((seguimento / total) * 100).toFixed(1) : 0;
+  const retencao = total ? ((d.filter(x => x.Proxima_Consulta).length / total) * 100).toFixed(1) : 0;
 
-  const total = dados.length;
-
-  const primeira = dados.filter(d =>
-    (d.Tipo_Consulta || "").toLowerCase().includes("primeira")
-  ).length;
-
-  const seguimento = dados.filter(d =>
-    (d.Tipo_Consulta || "").toLowerCase().includes("seguimento")
-  ).length;
-
-  const taxaSeguimento = total ? ((seguimento / total) * 100).toFixed(1) : 0;
-
-  const comProxima = dados.filter(d => d.Proxima_Consulta).length;
-  const taxaRetencao = total ? ((comProxima / total) * 100).toFixed(1) : 0;
-
-  const porDistrito = contar(dados, "Distrito");
-  const porServico = contar(dados, "Servico");
-  const porSexo = contar(dados, "Sexo");
-  const porDiagnostico = contar(dados, "Diagnostico");
-  const porMedico = contar(dados, "Nome_Medico");
-  const porMes = agruparPorMes(dados);
-
-  renderizarCards({
-    total,
-    primeira,
-    seguimento,
-    taxaSeguimento,
-    taxaRetencao
-  });
+  cardTotal.textContent = total;
+  cardPrimeira.textContent = primeira;
+  cardSeguimento.textContent = seguimento;
+  cardTaxaSeguimento.textContent = taxaSeg + "%";
+  cardRetencao.textContent = retencao + "%";
 
   renderizarGraficos({
-    porDistrito,
-    porServico,
-    porSexo,
-    porDiagnostico,
-    porMedico,
-    porMes
+    mensal: agruparMes(d),
+    sexo: contar(d, "Sexo"),
+    diagnostico: contar(d, "Diagnostico"),
+    medico: contar(d, "Nome_Medico"),
+    distrito: contar(d, "Distrito"),
+    servico: contar(d, "Servico")
   });
 }
 
 /* =========================================================
-   FUNÇÕES AUXILIARES
+   GRÁFICOS
 ========================================================= */
-function normalizarData(valor) {
-  if (!valor) return null;
-
-  if (typeof valor === "number") {
-    const utc = Math.floor(valor - 25569);
-    return new Date(utc * 86400 * 1000);
-  }
-
-  const d = new Date(valor);
-  return isNaN(d) ? null : d;
-}
-
-function contar(dados, campo) {
-  return dados.reduce((acc, d) => {
-    const k = d[campo] || "Não informado";
-    acc[k] = (acc[k] || 0) + 1;
-    return acc;
-  }, {});
-}
-
-function agruparPorMes(dados) {
-  const res = {};
-  dados.forEach(d => {
-    const dt = normalizarData(d.Data_Consulta);
-    if (!dt) return;
-
-    const chave = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
-    res[chave] = (res[chave] || 0) + 1;
-  });
-  return res;
-}
-
-function preencherSelect(id, dados, campo) {
-  const select = document.getElementById(id);
-  const valores = [...new Set(dados.map(d => d[campo]).filter(Boolean))];
-
-  select.innerHTML =
-    `<option value="">Todos</option>` +
-    valores.map(v => `<option value="${v}">${v}</option>`).join("");
-}
-
-function preencherSelectAno(id, dados) {
-  const select = document.getElementById(id);
-  const anos = [...new Set(
-    dados.map(d => {
-      const dt = normalizarData(d.Data_Consulta);
-      return dt ? dt.getFullYear() : null;
-    }).filter(Boolean)
-  )];
-
-  select.innerHTML =
-    `<option value="">Todos</option>` +
-    anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
-}
-
-/* =========================================================
-   CARDS KPI
-========================================================= */
-function renderizarCards(i) {
-  cardTotal.innerText = i.total;
-  cardPrimeira.innerText = i.primeira;
-  cardSeguimento.innerText = i.seguimento;
-  cardTaxaSeguimento.innerText = i.taxaSeguimento + "%";
-  cardRetencao.innerText = i.taxaRetencao + "%";
-}
-
-/* =========================================================
-   GRÁFICOS (Chart.js)
-========================================================= */
-function resetGraficos() {
-  Object.values(charts).forEach(c => c.destroy());
-  charts = {};
-}
-
 function renderizarGraficos(d) {
-  resetGraficos();
+  destruirGraficos();
 
-  criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais");
-  criarGrafico("grafSexo", "doughnut", d.porSexo, "Distribuição por Sexo");
-  criarGrafico("grafDiagnostico", "bar", topN(d.porDiagnostico, 6), "Diagnósticos");
-  criarGrafico("grafMedico", "bar", topN(d.porMedico, 6), "Produtividade por Médico");
-  criarGrafico("grafDistrito", "bar", topN(d.porDistrito, 6), "Produtividade por Distrito");
-  criarGrafico("grafServico", "bar", d.porServico, "Produtividade por Serviço");
+  criarGrafico("grafMensal", "line", d.mensal, {
+    cor: "#ff4f70",
+    preenchido: true
+  });
+
+  criarGrafico("grafSexo", "doughnut", d.sexo, {
+    cores: ["#ff4f70", "#ff8a00"]
+  });
+
+  criarGrafico("grafDiagnostico", "bar", d.diagnostico, {
+    cores: CORES_GRAFICOS
+  });
+
+  criarGrafico("grafMedico", "bar", d.medico, {
+    corUnica: "#ff4f70"
+  });
+
+  criarGrafico("grafDistrito", "bar", d.distrito, {
+    corUnica: "#ff4f70"
+  });
+
+  criarGrafico("grafServico", "bar", d.servico, {
+    corUnica: "#ff4f70"
+  });
 }
 
-function criarGrafico(id, tipo, dados, titulo) {
+function criarGrafico(id, tipo, dados, cfg = {}) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
 
@@ -232,46 +154,82 @@ function criarGrafico(id, tipo, dados, titulo) {
     data: {
       labels: Object.keys(dados),
       datasets: [{
-        label: titulo,
         data: Object.values(dados),
-        backgroundColor: CORES,
-        borderColor: CORES[0],
-        borderWidth: tipo === "line" ? 2 : 0,
-        fill: tipo === "line",
-        tension: 0.35,
-        pointRadius: tipo === "line" ? 4 : 0
+        backgroundColor: cfg.corUnica
+          ? cfg.corUnica
+          : (cfg.cores || CORES_GRAFICOS),
+        borderColor: cfg.cor || cfg.corUnica || "#ff4f70",
+        fill: cfg.preenchido || false,
+        tension: 0.4,
+        pointRadius: tipo === "line" ? 4 : 0,
+        pointStyle: "circle"
       }]
     },
     options: {
-      responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          labels: { color: "#e5e7eb" }
+          labels: {
+            usePointStyle: true
+          }
         }
       },
-      scales: tipo !== "doughnut" ? {
-        y: {
-          beginAtZero: true,
-          ticks: { color: "#9ca3af" },
-          grid: { color: "#1f2937" }
-        },
-        x: {
-          ticks: { color: "#9ca3af" },
-          grid: { display: false }
-        }
+      scales: tipo === "line" || tipo === "bar" ? {
+        x: { ticks: { maxRotation: 0 } },
+        y: { beginAtZero: true }
       } : {}
     }
   });
 }
 
+function destruirGraficos() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
 /* =========================================================
-   UTIL: TOP N
+   AUXILIARES
 ========================================================= */
-function topN(obj, n) {
-  return Object.fromEntries(
-    Object.entries(obj)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, n)
-  );
+function contar(d, campo) {
+  return d.reduce((a, x) => {
+    const k = x[campo] || "Não informado";
+    a[k] = (a[k] || 0) + 1;
+    return a;
+  }, {});
+}
+
+function agruparMes(d) {
+  const r = {};
+  d.forEach(x => {
+    const dt = normalizarData(x.Data_Consulta);
+    if (!dt) return;
+    const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
+    r[k] = (r[k] || 0) + 1;
+  });
+  return r;
+}
+
+function normalizarData(v) {
+  if (!v) return null;
+  if (typeof v === "number") {
+    return new Date((v - 25569) * 86400 * 1000);
+  }
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
+}
+
+function preencherSelect(id, campo, base = dadosOriginais) {
+  const s = document.getElementById(id);
+  const vals = [...new Set(base.map(x => x[campo]).filter(Boolean))];
+  s.innerHTML = `<option value="">Todos</option>` +
+    vals.map(v => `<option value="${v}">${v}</option>`).join("");
+}
+
+function preencherSelectAno() {
+  const anos = [...new Set(dadosOriginais.map(x => {
+    const d = normalizarData(x.Data_Consulta);
+    return d ? d.getFullYear() : null;
+  }).filter(Boolean))];
+  filtroAno.innerHTML = `<option value="">Todos</option>` +
+    anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
 }
