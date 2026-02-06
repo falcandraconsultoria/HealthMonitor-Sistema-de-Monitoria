@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <title>HealthMonitor | Falcandra Data Consulting</title>
+  <title>Dashboard de Monitoria em Saúde</title>
 
   <!-- Bibliotecas -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -16,10 +16,9 @@
       --bg:#0F172A;
       --card:#1E293B;
       --primary:#38BDF8;
+      --mint:#2DD4BF;
       --text-main:#F1F5F9;
       --text-soft:#CBD5E1;
-      --positive:#10B981;
-      --critical:#F43F5E;
     }
 
     body{
@@ -42,19 +41,12 @@
       box-shadow:0 8px 25px rgba(0,0,0,.5);
     }
 
-    header img{
-      height:38px;
-    }
+    header img{ height:38px }
 
     header h1{
       margin:0;
       font-size:20px;
       font-weight:600;
-    }
-
-    header span{
-      font-size:13px;
-      color:var(--text-soft);
     }
 
     .container{ padding:28px }
@@ -120,7 +112,6 @@
     .card span{
       font-size:30px;
       font-weight:800;
-      color:var(--text-main);
     }
 
     /* ================= GRÁFICOS ================= */
@@ -142,7 +133,6 @@
       margin:0 0 12px;
       font-size:14px;
       font-weight:600;
-      color:var(--text-main);
     }
 
     canvas{
@@ -163,52 +153,39 @@
 
 <header>
   <img src="assets/logo-falcandra.png" alt="Falcandra">
-  <div>
-    <h1>Dashboard de Monitoria em Saúde</h1>
-    <span>Falcandra Data Consulting</span>
-  </div>
+  <h1>Dashboard de Monitoria em Saúde</h1>
 </header>
 
 <div class="container">
 
-  <!-- ================= FILTROS ================= -->
+  <!-- FILTROS -->
   <div class="filtros">
     <div class="filtro-box">
       <label>Fonte de Dados</label>
       <input type="file" id="excelFile" accept=".xlsx,.xls">
     </div>
-    <div class="filtro-box">
-      <label>Província</label>
-      <select id="filtroProvincia"></select>
-    </div>
-    <div class="filtro-box">
-      <label>Distrito</label>
-      <select id="filtroDistrito"></select>
-    </div>
-    <div class="filtro-box">
-      <label>Serviço</label>
-      <select id="filtroServico"></select>
-    </div>
-    <div class="filtro-box">
-      <label>Ano</label>
-      <select id="filtroAno"></select>
-    </div>
+    <div class="filtro-box"><label>Província</label><select></select></div>
+    <div class="filtro-box"><label>Distrito</label><select></select></div>
+    <div class="filtro-box"><label>Serviço</label><select></select></div>
+    <div class="filtro-box"><label>Ano</label><select></select></div>
   </div>
 
-  <!-- ================= CARDS ================= -->
+  <!-- CARDS -->
   <div class="cards">
-    <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span id="cardTotal">0</span></div>
-    <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span id="cardPrimeira">0</span></div>
-    <div class="card"><i class="fa-solid fa-rotate"></i><h3>Seguimento</h3><span id="cardSeguimento">0</span></div>
-    <div class="card"><i class="fa-solid fa-percent"></i><h3>Taxa Seguimento</h3><span id="cardTaxaSeguimento">0%</span></div>
-    <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span id="cardRetencao">0%</span></div>
+    <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span>0</span></div>
+    <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span>0</span></div>
+    <div class="card"><i class="fa-solid fa-rotate"></i><h3>Seguimento</h3><span>0</span></div>
+    <div class="card"><i class="fa-solid fa-percent"></i><h3>Taxa Seguimento</h3><span>0%</span></div>
+    <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span>0%</span></div>
   </div>
 
+  <!-- MENSAL -->
   <div class="box">
     <h4>Atendimentos Mensais</h4>
     <canvas id="grafMensal"></canvas>
   </div>
 
+  <!-- SEXO + DIAGNÓSTICO -->
   <div class="grid">
     <div class="box">
       <h4>Distribuição por Sexo</h4>
@@ -220,26 +197,28 @@
     </div>
   </div>
 
+  <!-- MÉDICO + SERVIÇO -->
   <div class="grid">
     <div class="box">
       <h4>Produtividade por Médico</h4>
       <canvas id="grafMedico"></canvas>
     </div>
     <div class="box">
-      <h4>Produtividade por Distrito</h4>
-      <canvas id="grafDistrito"></canvas>
+      <h4>Produtividade por Serviço</h4>
+      <canvas id="grafServico"></canvas>
     </div>
   </div>
 
+  <!-- DISTRITO (LINHA INTEIRA) -->
   <div class="box">
-    <h4>Produtividade por Serviço</h4>
-    <canvas id="grafServico"></canvas>
+    <h4>Produtividade por Distrito</h4>
+    <canvas id="grafDistrito"></canvas>
   </div>
 
 </div>
 
 <footer>
-  © Falcandra Data Consulting · HealthMonitor
+  © Falcandra · HealthMonitor
 </footer>
 
 <script src="js/main.js"></script>
