@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard de Monitoria em Saúde</title>
+  <title>HealthMonitor | Dashboard de Monitoria em Saúde</title>
 
   <!-- Bibliotecas -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -19,24 +19,39 @@
       color:#e5e7eb;
     }
 
+    /* ================= HEADER ================= */
     header{
       position:sticky;
       top:0;
       z-index:100;
-      padding:18px 32px;
+      padding:16px 32px;
       background:linear-gradient(90deg,#0f172a,#111827);
       box-shadow:0 10px 30px rgba(0,0,0,.6);
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    header img{
+      height:42px;
+      width:auto;
     }
 
     header h1{
       margin:0;
-      font-size:24px;
+      font-size:22px;
       font-weight:600;
+    }
+
+    header span{
+      font-size:14px;
+      color:#cbd5f5;
+      font-weight:500;
     }
 
     .container{padding:30px}
 
-    /* FILTROS */
+    /* ================= FILTROS ================= */
     .filtros{
       display:grid;
       grid-template-columns:1.6fr repeat(4,1fr);
@@ -54,7 +69,7 @@
       font-weight:600;
     }
 
-    /* CARDS */
+    /* ================= CARDS ================= */
     .cards{
       display:grid;
       grid-template-columns:repeat(5,1fr);
@@ -72,7 +87,7 @@
 
     .card i{
       font-size:22px;
-      color:#ff8c00;
+      color:#ff8a00;
       margin-bottom:6px;
     }
 
@@ -86,10 +101,10 @@
     .card span{
       font-size:30px;
       font-weight:800;
-      color:#ff4d6d;
+      color:#ff4f70;
     }
 
-    /* GRÁFICOS */
+    /* ================= GRÁFICOS ================= */
     .grid{
       display:grid;
       grid-template-columns:1fr 1fr;
@@ -126,13 +141,18 @@
 
 <body>
 
+<!-- ================= HEADER ================= -->
 <header>
-  <h1>Dashboard de Monitoria em Saúde</h1>
+  <img src="assets/logo-falcandra.png" alt="Falcandra Data Consulting">
+  <div>
+    <h1>Dashboard de Monitoria em Saúde</h1>
+    <span>Falcandra Data Consulting</span>
+  </div>
 </header>
 
 <div class="container">
 
-  <!-- FILTROS -->
+  <!-- ================= FILTROS ================= -->
   <div class="filtros">
     <input type="file" id="excelFile" accept=".xlsx,.xls">
     <select id="filtroProvincia"></select>
@@ -141,16 +161,36 @@
     <select id="filtroAno"></select>
   </div>
 
-  <!-- CARDS -->
+  <!-- ================= CARDS ================= -->
   <div class="cards">
-    <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span id="cardTotal">0</span></div>
-    <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span id="cardPrimeira">0</span></div>
-    <div class="card"><i class="fa-solid fa-rotate"></i><h3>Seguimento</h3><span id="cardSeguimento">0</span></div>
-    <div class="card"><i class="fa-solid fa-percent"></i><h3>Taxa Seguimento</h3><span id="cardTaxaSeguimento">0%</span></div>
-    <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span id="cardRetencao">0%</span></div>
+    <div class="card">
+      <i class="fa-solid fa-users"></i>
+      <h3>Total Atendimentos</h3>
+      <span id="cardTotal">0</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-stethoscope"></i>
+      <h3>Primeira Consulta</h3>
+      <span id="cardPrimeira">0</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-rotate"></i>
+      <h3>Seguimento</h3>
+      <span id="cardSeguimento">0</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-percent"></i>
+      <h3>Taxa Seguimento</h3>
+      <span id="cardTaxaSeguimento">0%</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-heart-pulse"></i>
+      <h3>Retenção</h3>
+      <span id="cardRetencao">0%</span>
+    </div>
   </div>
 
-  <!-- GRÁFICOS -->
+  <!-- ================= GRÁFICOS ================= -->
   <div class="box">
     <h4>Atendimentos Mensais</h4>
     <canvas id="grafMensal"></canvas>
@@ -189,6 +229,7 @@
   © Falcandra Data Consulting · HealthMonitor
 </footer>
 
+<!-- SCRIPT PRINCIPAL -->
 <script src="js/main.js"></script>
 </body>
 </html>
