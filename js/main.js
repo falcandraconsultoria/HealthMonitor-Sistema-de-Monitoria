@@ -23,13 +23,13 @@ const cardTaxaSeguimento = document.getElementById("cardTaxaSeguimento");
 const cardRetencao = document.getElementById("cardRetencao");
 
 /* =========================================================
-   CORES (IDENTIDADE DEFINIDA)
+   CORES (IDENTIDADE FINAL)
 ========================================================= */
 const CORES = {
   medico: "#38BDF8",
   distrito: "#2DD4BF",
-  servico: ["#10B981","#34D399","#6EE7B7","#A7F3D0"],
-  diagnostico: "#7C3AED",
+  servico: "#10B981",        // VERDE ÚNICO
+  diagnostico: "#7C3AED",    // ROXO ÚNICO
   sexo: ["#38BDF8","#818CF8"]
 };
 
@@ -153,22 +153,28 @@ function renderizarGraficos(d) {
     horizontal: true
   });
 
-  /* 🔹 AJUSTE PEDIDO: MÉDICO EM BARRAS HORIZONTAIS */
   criarGrafico("grafMedico","bar",d.medico,{
     corUnica: CORES.medico,
     horizontal: true
   });
 
-  criarGrafico("grafServico","bar",d.servico,{ cores: CORES.servico });
-  criarGrafico("grafDistrito","bar",d.distrito,{ corUnica: CORES.distrito });
+  /* 🔹 AJUSTE PEDIDO */
+  criarGrafico("grafServico","bar",d.servico,{
+    corUnica: CORES.servico,
+    horizontal: true
+  });
+
+  criarGrafico("grafDistrito","bar",d.distrito,{
+    corUnica: CORES.distrito
+  });
 }
 
 /* =========================================================
-   FUNÇÃO BASE DE GRÁFICO
+   FUNÇÃO BASE
 ========================================================= */
 function criarGrafico(id,tipo,dados,cfg={}) {
   const ctx = document.getElementById(id);
-  if (!ctx) return;
+  if (!ctx || !Object.keys(dados).length) return;
 
   charts[id] = new Chart(ctx,{
     type: tipo,
@@ -179,7 +185,7 @@ function criarGrafico(id,tipo,dados,cfg={}) {
         backgroundColor:
           tipo === "line"
             ? "rgba(56,189,248,0.25)"
-            : (cfg.corUnica || cfg.cores || cfg.cor),
+            : (cfg.corUnica || cfg.cores),
         borderColor: cfg.cor || cfg.corUnica || "#38BDF8",
         borderWidth: 0,
         fill: cfg.preenchido || false,
@@ -208,18 +214,14 @@ function criarGrafico(id,tipo,dados,cfg={}) {
   });
 }
 
-/* =========================================================
-   CONTROLO DE GRÁFICOS
-========================================================= */
 function destruirGraficos(){
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
 }
 
 /* =========================================================
-   AUXILIARES
+   AUXILIARES – LIMPEZA TOTAL DE UNDEFINED
 ========================================================= */
-/* 🔹 AJUSTE PEDIDO: REMOVER TODOS OS UNDEFINED */
 function contar(d, c){
   return d.reduce((acc, row) => {
     if (!row[c]) return acc;
