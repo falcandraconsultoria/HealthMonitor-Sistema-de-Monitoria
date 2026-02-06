@@ -1,173 +1,237 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Dashboard de Monitoria em Saúde</title>
 
-  <!-- Chart.js -->
+  <!-- Bibliotecas -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- XLSX -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
+  <!-- Estilos -->
   <style>
     body {
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #f4f6f8;
       margin: 0;
-      padding: 24px;
-      color: #222;
-    }
-
-    .dashboard {
-      max-width: 1200px;
-      margin: auto;
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: #f4f6f8;
+      color: #111;
     }
 
     header {
       display: flex;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 24px;
+      gap: 20px;
+      padding: 16px 30px;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.05);
     }
 
     header img {
-      height: 60px;
+      height: 55px;
     }
 
     header h1 {
-      font-size: 28px;
+      font-size: 26px;
       margin: 0;
+      font-weight: 600;
     }
 
-    /* FILTROS */
+    .container {
+      padding: 20px 30px;
+    }
+
+    /* Filtros */
     .filtros {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: 1.5fr repeat(4, 1fr);
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 25px;
     }
 
-    select, input[type="file"] {
-      padding: 8px;
+    .filtros input,
+    .filtros select {
+      padding: 10px;
       border-radius: 8px;
-      border: 1px solid #ccc;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      background: #fff;
     }
 
-    /* CARDS */
+    /* Cards */
     .cards {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 16px;
-      margin-bottom: 24px;
+      margin-bottom: 30px;
     }
 
     .card {
-      background: #fff;
+      background: #ffffff;
       border-radius: 16px;
-      padding: 16px;
+      padding: 18px;
       text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      height: 110px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
     }
 
     .card h3 {
       font-size: 14px;
-      margin: 0;
-      color: #666;
+      margin-bottom: 8px;
+      color: #555;
     }
 
-    .card p {
-      font-size: 28px;
-      margin: 8px 0 0;
-      color: #1f6ae1;
-      font-weight: bold;
+    .card span {
+      font-size: 30px;
+      font-weight: 700;
+      color: #1f4fd8;
     }
 
-    /* GRÁFICOS */
+    /* Gráficos */
     .graficos {
       display: grid;
       grid-template-columns: 2fr 1fr;
       gap: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 30px;
     }
 
-    .graficos-secundarios {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 24px;
+    .grafico-box {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 15px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      height: 340px;
     }
 
-    .box {
-      background: #fff;
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-    }
-
-    canvas {
+    .grafico-box canvas {
       width: 100% !important;
+      height: 100% !important;
     }
 
-    .linha { height: 260px; }
-    .donut { height: 220px; }
-    .barra { height: 240px; }
+    /* Segunda linha de gráficos */
+    .graficos-2 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
 
-    /* MAPA */
-    #map {
-      height: 280px;
-      border-radius: 18px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    /* Mapa */
+    .mapa-box {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 15px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+    }
+
+    #mapa {
+      height: 420px;
+      border-radius: 12px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 15px;
+      font-size: 13px;
+      color: #777;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
     }
   </style>
 </head>
 
 <body>
-<div class="dashboard">
 
-  <header>
-    <img src="logo.png" alt="Falcandra Data Consulting">
-    <h1>Dashboard de Monitoria em Saúde</h1>
-  </header>
+<header>
+  <img src="assets/logo-falcandra.png" alt="Falcandra Data Consulting">
+  <h1>Dashboard de Monitoria em Saúde</h1>
+</header>
 
+<div class="container">
+
+  <!-- Filtros -->
   <div class="filtros">
-    <input type="file" id="excelFile" />
+    <input type="file" id="excelFile" accept=".xlsx,.xls">
     <select id="filtroProvincia"></select>
     <select id="filtroDistrito"></select>
     <select id="filtroServico"></select>
     <select id="filtroAno"></select>
   </div>
 
+  <!-- Cards -->
   <div class="cards">
-    <div class="card"><h3>Total</h3><p id="kpiTotal">0</p></div>
-    <div class="card"><h3>Primeira Consulta</h3><p id="kpiPrimeira">0</p></div>
-    <div class="card"><h3>Seguimento</h3><p id="kpiSeguimento">0</p></div>
-    <div class="card"><h3>Taxa Seguimento</h3><p id="kpiTaxa">0%</p></div>
-    <div class="card"><h3>Retenção</h3><p id="kpiRetencao">0%</p></div>
+    <div class="card">
+      <h3>Total</h3>
+      <span id="cardTotal">0</span>
+    </div>
+    <div class="card">
+      <h3>Primeira Consulta</h3>
+      <span id="cardPrimeira">0</span>
+    </div>
+    <div class="card">
+      <h3>Seguimento</h3>
+      <span id="cardSeguimento">0</span>
+    </div>
+    <div class="card">
+      <h3>Taxa Seguimento</h3>
+      <span id="cardTaxaSeguimento">0%</span>
+    </div>
+    <div class="card">
+      <h3>Retenção</h3>
+      <span id="cardRetencao">0%</span>
+    </div>
   </div>
 
+  <!-- Gráficos linha 1 -->
   <div class="graficos">
-    <div class="box linha"><canvas id="graficoMensal"></canvas></div>
-    <div class="box donut"><canvas id="graficoTipo"></canvas></div>
+    <div class="grafico-box">
+      <canvas id="grafMensal"></canvas>
+    </div>
+    <div class="grafico-box">
+      <canvas id="grafServico"></canvas>
+    </div>
   </div>
 
-  <div class="graficos-secundarios">
-    <div class="box barra"><canvas id="graficoServico"></canvas></div>
-    <div class="box barra"><canvas id="graficoProvincia"></canvas></div>
+  <!-- Gráficos linha 2 -->
+  <div class="graficos-2">
+    <div class="grafico-box">
+      <canvas id="grafProvincia"></canvas>
+    </div>
+    <div class="grafico-box">
+      <canvas id="grafDistrito"></canvas>
+    </div>
+    <div class="grafico-box">
+      <canvas id="grafSexo"></canvas>
+    </div>
   </div>
 
-  <div class="box">
+  <!-- Gráficos linha 3 -->
+  <div class="graficos-2">
+    <div class="grafico-box">
+      <canvas id="grafDiagnostico"></canvas>
+    </div>
+  </div>
+
+  <!-- Mapa -->
+  <div class="mapa-box">
     <h3>Mapa de Moçambique</h3>
-    <div id="map"></div>
+    <div id="mapa"></div>
   </div>
 
 </div>
 
+<footer>
+  © Falcandra Data Consulting · HealthMonitor Sistema de Monitoria
+</footer>
+
+<!-- Script principal -->
 <script src="js/main.js"></script>
+
 </body>
 </html>
