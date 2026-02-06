@@ -5,23 +5,30 @@ let dadosOriginais = [];
 let charts = {};
 
 /* =========================================================
+   ELEMENTOS DO DOM
+========================================================= */
+// Cards
+const cardTotal = document.getElementById("cardTotal");
+const cardPrimeira = document.getElementById("cardPrimeira");
+const cardSeguimento = document.getElementById("cardSeguimento");
+const cardTaxaSeguimento = document.getElementById("cardTaxaSeguimento");
+const cardRetencao = document.getElementById("cardRetencao");
+
+// Filtros
+const filtroProvincia = document.getElementById("filtroProvincia");
+const filtroDistrito  = document.getElementById("filtroDistrito");
+const filtroServico   = document.getElementById("filtroServico");
+const filtroAno       = document.getElementById("filtroAno");
+const excelFile       = document.getElementById("excelFile");
+
+/* =========================================================
    CORES PROFISSIONAIS (SAÚDE PÚBLICA)
 ========================================================= */
 const CORES = {
-  medico: "#38BDF8",          // Azul Sereno
-  distrito: "#2DD4BF",        // Verde Água / Menta
-  servicoGradient: [
-    "#10B981",
-    "#34D399",
-    "#6EE7B7",
-    "#A7F3D0"
-  ],
-  diagnosticos: [
-    "#10B981", // Esmeralda
-    "#2563EB", // Safira
-    "#7C3AED", // Ametista
-    "#64748B"  // Ardósia
-  ],
+  medico: "#38BDF8",        // Azul sereno
+  distrito: "#2DD4BF",      // Verde água / menta
+  servico: ["#10B981","#34D399","#6EE7B7","#A7F3D0"],
+  diagnostico: ["#10B981","#2563EB","#7C3AED","#64748B"],
   sexo: {
     masculino: "#38BDF8",
     feminino: "#818CF8"
@@ -31,7 +38,7 @@ const CORES = {
 /* =========================================================
    UPLOAD DO EXCEL
 ========================================================= */
-document.getElementById("excelFile").addEventListener("change", e => {
+excelFile.addEventListener("change", e => {
   const file = e.target.files[0];
   if (!file) return;
 
@@ -40,7 +47,13 @@ document.getElementById("excelFile").addEventListener("change", e => {
     const data = new Uint8Array(evt.target.result);
     const wb = XLSX.read(data, { type: "array" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
+
     dadosOriginais = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    if (!dadosOriginais.length) {
+      alert("O ficheiro não contém dados válidos.");
+      return;
+    }
 
     inicializarFiltros();
     aplicarFiltros();
@@ -52,23 +65,21 @@ document.getElementById("excelFile").addEventListener("change", e => {
    FILTROS
 ========================================================= */
 function inicializarFiltros() {
-  preencherSelect("filtroProvincia", "Provincia");
-  preencherSelect("filtroServico", "Servico");
+  preencherSelect(filtroProvincia, "Provincia");
+  preencherSelect(filtroServico, "Servico");
   preencherSelectAno();
   filtroDistrito.innerHTML = `<option value="">Todos</option>`;
 }
 
-["filtroProvincia","filtroDistrito","filtroServico","filtroAno"]
-  .forEach(id =>
-    document.getElementById(id).addEventListener("change", aplicarFiltros)
-  );
+[filtroProvincia,filtroDistrito,filtroServico,filtroAno]
+  .forEach(el => el.addEventListener("change", aplicarFiltros));
 
 filtroProvincia.addEventListener("change", () => {
   const base = filtroProvincia.value
     ? dadosOriginais.filter(d => d.Provincia === filtroProvincia.value)
     : dadosOriginais;
 
-  preencherSelect("filtroDistrito", "Distrito", base);
+  preencherSelect(filtroDistrito, "Distrito", base);
   filtroDistrito.value = "";
   aplicarFiltros();
 });
@@ -97,6 +108,7 @@ function aplicarFiltros() {
 ========================================================= */
 function calcularIndicadores(d) {
   const total = d.length;
+
   const primeira = d.filter(x =>
     String(x.Tipo_Consulta).toLowerCase().includes("primeira")
   ).length;
@@ -108,6 +120,7 @@ function calcularIndicadores(d) {
   cardTotal.textContent = total;
   cardPrimeira.textContent = primeira;
   cardSeguimento.textContent = seguimento;
+
   cardTaxaSeguimento.textContent =
     total ? ((seguimento / total) * 100).toFixed(1) + "%" : "0%";
 
@@ -137,14 +150,13 @@ function renderizarGraficos(d) {
     pontos:false
   });
 
-  /* Sexo — Gauge (semicírculo) */
   criarGrafico("grafSexo","doughnut",d.sexo,{
     cores:[CORES.sexo.masculino, CORES.sexo.feminino],
     gauge:true
   });
 
   criarGrafico("grafDiagnostico","bar",d.diagnostico,{
-    cores: CORES.diagnosticos
+    cores: CORES.diagnostico
   });
 
   criarGrafico("grafMedico","bar",d.medico,{
@@ -152,7 +164,7 @@ function renderizarGraficos(d) {
   });
 
   criarGrafico("grafServico","bar",d.servico,{
-    cores: CORES.servicoGradient
+    cores: CORES.servico
   });
 
   criarGrafico("grafDistrito","bar",d.distrito,{
@@ -202,7 +214,7 @@ function destruirGraficos(){
 }
 
 /* =========================================================
-   AUXILIARES
+   FUNÇÕES AUXILIARES
 ========================================================= */
 function contar(d,c){
   return d.reduce((a,x)=>{
@@ -237,10 +249,9 @@ function normalizarData(v){
   return isNaN(d) ? null : d;
 }
 
-function preencherSelect(id,campo,base=dadosOriginais){
-  const s = document.getElementById(id);
+function preencherSelect(select,campo,base=dadosOriginais){
   const vals = [...new Set(base.map(x=>x[campo]).filter(Boolean))];
-  s.innerHTML = `<option value="">Todos</option>` +
+  select.innerHTML = `<option value="">Todos</option>` +
     vals.map(v=>`<option value="${v}">${v}</option>`).join("");
 }
 
