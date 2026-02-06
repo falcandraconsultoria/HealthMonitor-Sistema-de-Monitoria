@@ -11,7 +11,7 @@ document.getElementById("excelFile").addEventListener("change", function (event)
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
-    const dados = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const dados = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
     motorIndicadoresSaude(dados);
   };
@@ -19,14 +19,11 @@ document.getElementById("excelFile").addEventListener("change", function (event)
   reader.readAsArrayBuffer(file);
 });
 
-/* ==============================
+/* =========================================================
    MOTOR DE INDICADORES DE SAÚDE
-   ============================== */
+========================================================= */
 
 function motorIndicadoresSaude(dados) {
-  const cabecalho = dados[0];
-  const linhas = dados.slice(1);
-
   const colunasObrigatorias = [
     "Provincia",
     "Distrito",
@@ -39,116 +36,110 @@ function motorIndicadoresSaude(dados) {
     "Proxima_Consulta"
   ];
 
-  const faltantes = colunasObrigatorias.filter(
-    col => !cabecalho.includes(col)
-  );
+  const colunasExcel = Object.keys(dados[0] || {});
+  const faltantes = colunasObrigatorias.filter(c => !colunasExcel.includes(c));
 
   if (faltantes.length > 0) {
     document.getElementById("output").innerHTML = `
-      <p style="color:red;">
-        ❌ Estrutura inválida.<br>
-        Colunas obrigatórias em falta:<br>
-        <strong>${faltantes.join(", ")}</strong>
+      <p style="color:red">
+        <strong>Colunas em falta:</strong> ${faltantes.join(", ")}
       </p>`;
     return;
   }
 
-  const idx = c => cabecalho.indexOf(c);
+  const totalAtendimentos = dados.length;
 
-  let total = linhas.length;
-  let primeiraConsulta = 0;
-  let seguimento = 0;
+  const primeiraConsulta = dados.filter(
+    d => (d.Tipo_Consulta || "").toLowerCase().includes("primeira")
+  ).length;
 
-  let porProvincia = {};
-  let porDistrito = {};
-  let porServico = {};
-  let porDiagnostico = {};
-  let porSexo = {};
-  let porMedico = {};
-  let seguimentoServico = {};
+  const seguimento = dados.filter(
+    d => (d.Tipo_Consulta || "").toLowerCase().includes("seguimento")
+  ).length;
 
-  linhas.forEach(l => {
-    const provincia = l[idx("Provincia")];
-    const distrito = l[idx("Distrito")];
-    const sexo = l[idx("Sexo")];
-    const medico = l[idx("Nome_Medico")];
-    const diagnostico = l[idx("Diagnostico")];
-    const servico = l[idx("Servico")];
-    const tipo = l[idx("Tipo_Consulta")];
-    const prox = l[idx("Proxima_Consulta")];
+  const taxaSeguimento = totalAtendimentos > 0
+    ? ((seguimento / totalAtendimentos) * 100).toFixed(1)
+    : 0;
 
-    porProvincia[provincia] = (porProvincia[provincia] || 0) + 1;
-    porDistrito[distrito] = (porDistrito[distrito] || 0) + 1;
-    porServico[servico] = (porServico[servico] || 0) + 1;
-    porDiagnostico[diagnostico] = (porDiagnostico[diagnostico] || 0) + 1;
-    porSexo[sexo] = (porSexo[sexo] || 0) + 1;
-    porMedico[medico] = (porMedico[medico] || 0) + 1;
+  const comProximaConsulta = dados.filter(
+    d => d.Proxima_Consulta !== ""
+  ).length;
 
-    if (tipo === "Primeira Consulta") primeiraConsulta++;
-    if (tipo === "Seguimento") {
-      seguimento++;
-      seguimentoServico[servico] = (seguimentoServico[servico] || 0) + 1;
-    }
-  });
+  const taxaRetencao = totalAtendimentos > 0
+    ? ((comProximaConsulta / totalAtendimentos) * 100).toFixed(1)
+    : 0;
 
-  const taxaSeguimento = ((seguimento / total) * 100).toFixed(1);
+  const porProvincia = contar(dados, "Provincia");
+  const porDistrito = contar(dados, "Distrito");
+  const porServico = contar(dados, "Servico");
+  const porDiagnostico = contar(dados, "Diagnostico");
+  const porSexo = contar(dados, "Sexo");
+  const porMedico = contar(dados, "Nome_Medico");
 
-  renderizarIndicadores({
-    total,
+  renderizar({
+    totalAtendimentos,
     primeiraConsulta,
     seguimento,
     taxaSeguimento,
+    taxaRetencao,
     porProvincia,
     porDistrito,
     porServico,
     porDiagnostico,
     porSexo,
-    porMedico,
-    seguimentoServico
+    porMedico
   });
 }
 
-/* ==============================
-   DASHBOARD DE INDICADORES
-   ============================== */
+/* =========================================================
+   FUNÇÕES AUXILIARES
+========================================================= */
 
-function renderizarIndicadores(d) {
-  document.getElementById("output").innerHTML = `
-    <h3>📊 Indicadores de Monitoria de Saúde</h3>
-
-    <p><strong>Total de atendimentos:</strong> ${d.total}</p>
-    <p><strong>Primeiras consultas:</strong> ${d.primeiraConsulta}</p>
-    <p><strong>Consultas de seguimento:</strong> ${d.seguimento}</p>
-    <p><strong>Taxa de seguimento:</strong> ${d.taxaSeguimento}%</p>
-
-    <h4>🗺️ Atendimentos por Província</h4>
-    ${lista(d.porProvincia)}
-
-    <h4>📍 Atendimentos por Distrito</h4>
-    ${lista(d.porDistrito)}
-
-    <h4>🏥 Atendimentos por Serviço</h4>
-    ${lista(d.porServico)}
-
-    <h4>🔁 Seguimento por Serviço</h4>
-    ${lista(d.seguimentoServico)}
-
-    <h4>🦠 Casos por Diagnóstico</h4>
-    ${lista(d.porDiagnostico)}
-
-    <h4>👥 Atendimentos por Sexo</h4>
-    ${lista(d.porSexo)}
-
-    <h4>👨🏽‍⚕️ Atendimentos por Médico</h4>
-    ${lista(d.porMedico)}
-  `;
+function contar(dados, campo) {
+  return dados.reduce((acc, item) => {
+    const chave = item[campo] || "Não informado";
+    acc[chave] = (acc[chave] || 0) + 1;
+    return acc;
+  }, {});
 }
 
 function lista(obj) {
-  return `<ul>${
-    Object.entries(obj)
-      .sort((a, b) => b[1] - a[1)
-      .map(([k, v]) => `<li>${k}: ${v}</li>`)
-      .join("")
-  }</ul>`;
+  return Object.entries(obj)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `<li>${k}: ${v}</li>`)
+    .join("");
+}
+
+/* =========================================================
+   RENDERIZAÇÃO DOS INDICADORES
+========================================================= */
+
+function renderizar(i) {
+  document.getElementById("output").innerHTML = `
+    <h3>Indicadores de Saúde</h3>
+
+    <p><strong>Total de atendimentos:</strong> ${i.totalAtendimentos}</p>
+    <p><strong>Primeira consulta:</strong> ${i.primeiraConsulta}</p>
+    <p><strong>Consultas de seguimento:</strong> ${i.seguimento}</p>
+    <p><strong>Taxa de seguimento:</strong> ${i.taxaSeguimento}%</p>
+    <p><strong>Pacientes com próxima consulta:</strong> ${i.taxaRetencao}%</p>
+
+    <h4>Atendimentos por Província</h4>
+    <ul>${lista(i.porProvincia)}</ul>
+
+    <h4>Atendimentos por Distrito</h4>
+    <ul>${lista(i.porDistrito)}</ul>
+
+    <h4>Atendimentos por Serviço</h4>
+    <ul>${lista(i.porServico)}</ul>
+
+    <h4>Diagnósticos mais frequentes</h4>
+    <ul>${lista(i.porDiagnostico)}</ul>
+
+    <h4>Distribuição por Sexo</h4>
+    <ul>${lista(i.porSexo)}</ul>
+
+    <h4>Atendimentos por Médico</h4>
+    <ul>${lista(i.porMedico)}</ul>
+  `;
 }
