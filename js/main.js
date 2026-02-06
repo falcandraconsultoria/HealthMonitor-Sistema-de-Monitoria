@@ -3,33 +3,34 @@
 ========================================================= */
 let dadosOriginais = [];
 let charts = {};
-let mapa;
 
 /* =========================================================
-   PALETA VISUAL (SAÚDE MODERNA)
+   PALETA DE CORES (ALINHADA AO DESIGN FINAL)
 ========================================================= */
-const CORES = {
-  verde: "#2A9D8F",
-  azul: "#2563EB",
-  dourado: "#D4AF37",
-  cinza: "#CBD5E1",
-  escuro: "#0F172A"
-};
+const CORES = [
+  "#ff4d6d", // coral
+  "#ff7a00", // laranja
+  "#38bdf8", // azul claro
+  "#a855f7", // roxo
+  "#facc15", // dourado
+  "#22c55e"  // verde
+];
 
 /* =========================================================
-   UPLOAD EXCEL
+   UPLOAD DO EXCEL
 ========================================================= */
-document.getElementById("excelFile").addEventListener("change", e => {
-  const file = e.target.files[0];
+document.getElementById("excelFile").addEventListener("change", function (event) {
+  const file = event.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = ev => {
-    const data = new Uint8Array(ev.target.result);
-    const wb = XLSX.read(data, { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
     dadosOriginais = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
     inicializarFiltros(dadosOriginais);
     aplicarFiltros();
   };
@@ -43,36 +44,46 @@ function inicializarFiltros(dados) {
   preencherSelect("filtroProvincia", dados, "Provincia");
   preencherSelect("filtroServico", dados, "Servico");
   preencherSelectAno("filtroAno", dados);
-  document.getElementById("filtroDistrito").innerHTML = `<option value="">Todos</option>`;
+
+  document.getElementById("filtroDistrito").innerHTML =
+    `<option value="">Todos</option>`;
 }
 
 ["filtroProvincia", "filtroDistrito", "filtroServico", "filtroAno"]
-  .forEach(id => document.getElementById(id).addEventListener("change", aplicarFiltros));
+  .forEach(id =>
+    document.getElementById(id).addEventListener("change", aplicarFiltros)
+  );
 
 document.getElementById("filtroProvincia").addEventListener("change", () => {
-  const p = document.getElementById("filtroProvincia").value;
-  const base = p ? dadosOriginais.filter(d => d.Provincia === p) : dadosOriginais;
-  preencherSelect("filtroDistrito", base, "Distrito");
+  const provincia = document.getElementById("filtroProvincia").value;
+
+  const dadosFiltrados = provincia
+    ? dadosOriginais.filter(d => d.Provincia === provincia)
+    : dadosOriginais;
+
+  preencherSelect("filtroDistrito", dadosFiltrados, "Distrito");
+  document.getElementById("filtroDistrito").value = "";
+  aplicarFiltros();
 });
 
 /* =========================================================
    APLICAR FILTROS
 ========================================================= */
 function aplicarFiltros() {
-  const p = filtroProvincia.value;
-  const d = filtroDistrito.value;
-  const s = filtroServico.value;
-  const a = filtroAno.value;
+  const provincia = document.getElementById("filtroProvincia").value;
+  const distrito = document.getElementById("filtroDistrito").value;
+  const servico = document.getElementById("filtroServico").value;
+  const ano = document.getElementById("filtroAno").value;
 
-  const filtrados = dadosOriginais.filter(r => {
-    const dt = normalizarData(r.Data_Consulta);
-    const ano = dt ? dt.getFullYear() : null;
+  const filtrados = dadosOriginais.filter(d => {
+    const dt = normalizarData(d.Data_Consulta);
+    const anoConsulta = dt ? dt.getFullYear() : null;
 
     return (
-      (!p || r.Provincia === p) &&
-      (!d || r.Distrito === d) &&
-      (!s || r.Servico === s) &&
-      (!a || ano == a)
+      (!provincia || d.Provincia === provincia) &&
+      (!distrito || d.Distrito === distrito) &&
+      (!servico || d.Servico === servico) &&
+      (!ano || anoConsulta == ano)
     );
   });
 
@@ -83,6 +94,7 @@ function aplicarFiltros() {
    MOTOR DE INDICADORES
 ========================================================= */
 function motorIndicadoresSaude(dados) {
+
   const total = dados.length;
 
   const primeira = dados.filter(d =>
@@ -94,26 +106,47 @@ function motorIndicadoresSaude(dados) {
   ).length;
 
   const taxaSeguimento = total ? ((seguimento / total) * 100).toFixed(1) : 0;
+
   const comProxima = dados.filter(d => d.Proxima_Consulta).length;
   const taxaRetencao = total ? ((comProxima / total) * 100).toFixed(1) : 0;
 
-  const porMes = agruparPorMes(dados);
+  const porDistrito = contar(dados, "Distrito");
+  const porServico = contar(dados, "Servico");
   const porSexo = contar(dados, "Sexo");
-  const porDiagnostico = topN(contar(dados, "Diagnostico"), 6);
-  const porMedico = topN(contar(dados, "Nome_Medico"), 8);
+  const porDiagnostico = contar(dados, "Diagnostico");
+  const porMedico = contar(dados, "Nome_Medico");
+  const porMes = agruparPorMes(dados);
 
-  renderizarCards({ total, primeira, seguimento, taxaSeguimento, taxaRetencao });
-  renderizarGraficos({ porMes, porSexo, porDiagnostico, porMedico });
-  renderizarMapa(contar(dados, "Provincia"));
+  renderizarCards({
+    total,
+    primeira,
+    seguimento,
+    taxaSeguimento,
+    taxaRetencao
+  });
+
+  renderizarGraficos({
+    porDistrito,
+    porServico,
+    porSexo,
+    porDiagnostico,
+    porMedico,
+    porMes
+  });
 }
 
 /* =========================================================
-   UTILITÁRIOS
+   FUNÇÕES AUXILIARES
 ========================================================= */
-function normalizarData(v) {
-  if (!v) return null;
-  if (typeof v === "number") return new Date((v - 25569) * 86400 * 1000);
-  const d = new Date(v);
+function normalizarData(valor) {
+  if (!valor) return null;
+
+  if (typeof valor === "number") {
+    const utc = Math.floor(valor - 25569);
+    return new Date(utc * 86400 * 1000);
+  }
+
+  const d = new Date(valor);
   return isNaN(d) ? null : d;
 }
 
@@ -125,44 +158,43 @@ function contar(dados, campo) {
   }, {});
 }
 
-function topN(obj, n) {
-  return Object.fromEntries(
-    Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n)
-  );
-}
-
 function agruparPorMes(dados) {
-  const r = {};
+  const res = {};
   dados.forEach(d => {
     const dt = normalizarData(d.Data_Consulta);
     if (!dt) return;
-    const k = `${dt.getMonth()+1}/${dt.getFullYear()}`;
-    r[k] = (r[k] || 0) + 1;
+
+    const chave = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    res[chave] = (res[chave] || 0) + 1;
   });
-  return r;
+  return res;
 }
 
 function preencherSelect(id, dados, campo) {
-  const s = document.getElementById(id);
-  const vals = [...new Set(dados.map(d => d[campo]).filter(Boolean))];
-  s.innerHTML = `<option value="">Todos</option>` +
-    vals.map(v => `<option value="${v}">${v}</option>`).join("");
+  const select = document.getElementById(id);
+  const valores = [...new Set(dados.map(d => d[campo]).filter(Boolean))];
+
+  select.innerHTML =
+    `<option value="">Todos</option>` +
+    valores.map(v => `<option value="${v}">${v}</option>`).join("");
 }
 
 function preencherSelectAno(id, dados) {
-  const s = document.getElementById(id);
+  const select = document.getElementById(id);
   const anos = [...new Set(
     dados.map(d => {
       const dt = normalizarData(d.Data_Consulta);
       return dt ? dt.getFullYear() : null;
     }).filter(Boolean)
   )];
-  s.innerHTML = `<option value="">Todos</option>` +
+
+  select.innerHTML =
+    `<option value="">Todos</option>` +
     anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
 }
 
 /* =========================================================
-   CARDS
+   CARDS KPI
 ========================================================= */
 function renderizarCards(i) {
   cardTotal.innerText = i.total;
@@ -173,14 +205,25 @@ function renderizarCards(i) {
 }
 
 /* =========================================================
-   GRÁFICOS
+   GRÁFICOS (Chart.js)
 ========================================================= */
 function resetGraficos() {
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
 }
 
-function criarGrafico(id, tipo, dados, label, cores) {
+function renderizarGraficos(d) {
+  resetGraficos();
+
+  criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais");
+  criarGrafico("grafSexo", "doughnut", d.porSexo, "Distribuição por Sexo");
+  criarGrafico("grafDiagnostico", "bar", topN(d.porDiagnostico, 6), "Diagnósticos");
+  criarGrafico("grafMedico", "bar", topN(d.porMedico, 6), "Produtividade por Médico");
+  criarGrafico("grafDistrito", "bar", topN(d.porDistrito, 6), "Produtividade por Distrito");
+  criarGrafico("grafServico", "bar", d.porServico, "Produtividade por Serviço");
+}
+
+function criarGrafico(id, tipo, dados, titulo) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
 
@@ -189,57 +232,46 @@ function criarGrafico(id, tipo, dados, label, cores) {
     data: {
       labels: Object.keys(dados),
       datasets: [{
-        label,
+        label: titulo,
         data: Object.values(dados),
-        backgroundColor: cores,
-        borderWidth: 2,
-        tension: 0.4,
-        fill: tipo === "line"
+        backgroundColor: CORES,
+        borderColor: CORES[0],
+        borderWidth: tipo === "line" ? 2 : 0,
+        fill: tipo === "line",
+        tension: 0.35,
+        pointRadius: tipo === "line" ? 4 : 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom" } }
+      plugins: {
+        legend: {
+          labels: { color: "#e5e7eb" }
+        }
+      },
+      scales: tipo !== "doughnut" ? {
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#9ca3af" },
+          grid: { color: "#1f2937" }
+        },
+        x: {
+          ticks: { color: "#9ca3af" },
+          grid: { display: false }
+        }
+      } : {}
     }
   });
 }
 
-function renderizarGraficos(d) {
-  resetGraficos();
-
-  criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais",
-    "rgba(42,157,143,0.4)");
-
-  criarGrafico("grafSexo", "doughnut", d.porSexo, "Distribuição por Sexo",
-    [CORES.verde, CORES.azul]);
-
-  criarGrafico("grafDiagnostico", "bar", d.porDiagnostico,
-    "Principais Diagnósticos", CORES.verde);
-
-  criarGrafico("grafMedico", "bar", d.porMedico,
-    "Produtividade por Médico", CORES.azul);
-}
-
 /* =========================================================
-   MAPA
+   UTIL: TOP N
 ========================================================= */
-function renderizarMapa(dadosProvincia) {
-  if (mapa) mapa.remove();
-  mapa = L.map("mapa").setView([-18.7, 35.5], 5);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
-    .addTo(mapa);
-
-  fetch("mocambique_provincias.geojson")
-    .then(r => r.json())
-    .then(g => {
-      L.geoJSON(g, {
-        style: f => ({
-          fillColor: CORES.verde,
-          weight: 1,
-          fillOpacity: 0.6
-        })
-      }).addTo(mapa);
-    });
+function topN(obj, n) {
+  return Object.fromEntries(
+    Object.entries(obj)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+  );
 }
