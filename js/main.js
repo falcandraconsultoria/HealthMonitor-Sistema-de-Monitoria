@@ -23,13 +23,13 @@ const cardTaxaSeguimento = document.getElementById("cardTaxaSeguimento");
 const cardRetencao = document.getElementById("cardRetencao");
 
 /* =========================================================
-   CORES (SAÚDE PÚBLICA)
+   CORES (IDENTIDADE DEFINIDA)
 ========================================================= */
 const CORES = {
   medico: "#38BDF8",
   distrito: "#2DD4BF",
   servico: ["#10B981","#34D399","#6EE7B7","#A7F3D0"],
-  diagnostico: ["#10B981","#2563EB","#7C3AED","#64748B"],
+  diagnostico: "#7C3AED", // roxo único
   sexo: ["#38BDF8","#818CF8"]
 };
 
@@ -116,8 +116,10 @@ function atualizarIndicadores(d) {
   cardTotal.textContent = total;
   cardPrimeira.textContent = primeira;
   cardSeguimento.textContent = seguimento;
+
   cardTaxaSeguimento.textContent =
     total ? ((seguimento/total)*100).toFixed(1)+"%" : "0%";
+
   cardRetencao.textContent =
     total ? ((d.filter(x=>x.Proxima_Consulta).length/total)*100).toFixed(1)+"%" : "0%";
 
@@ -137,51 +139,80 @@ function atualizarIndicadores(d) {
 function renderizarGraficos(d) {
   destruirGraficos();
 
-  criarGrafico("grafMensal","line",d.mensal,{ cor:CORES.medico });
-
-  criarGrafico("grafSexo","doughnut",d.sexo,{
-    cores:CORES.sexo,
-    gauge:true
+  // Atendimentos Mensais (linha com área preenchida)
+  criarGrafico("grafMensal","line",d.mensal,{
+    cor: CORES.medico,
+    preenchido: true
   });
 
-  criarGrafico("grafDiagnostico","bar",d.diagnostico,{ cores:CORES.diagnostico });
-  criarGrafico("grafMedico","bar",d.medico,{ corUnica:CORES.medico });
-  criarGrafico("grafServico","bar",d.servico,{ cores:CORES.servico });
-  criarGrafico("grafDistrito","bar",d.distrito,{ corUnica:CORES.distrito });
+  // Distribuição por Sexo (circular)
+  criarGrafico("grafSexo","doughnut",d.sexo,{
+    cores: CORES.sexo
+  });
+
+  // Diagnósticos (barras horizontais, roxo único)
+  criarGrafico("grafDiagnostico","bar",d.diagnostico,{
+    corUnica: CORES.diagnostico,
+    horizontal: true
+  });
+
+  // Produtividade
+  criarGrafico("grafMedico","bar",d.medico,{ corUnica: CORES.medico });
+  criarGrafico("grafServico","bar",d.servico,{ cores: CORES.servico });
+  criarGrafico("grafDistrito","bar",d.distrito,{ corUnica: CORES.distrito });
 }
 
+/* =========================================================
+   FUNÇÃO BASE DE GRÁFICO
+========================================================= */
 function criarGrafico(id,tipo,dados,cfg={}) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
 
   charts[id] = new Chart(ctx,{
-    type:tipo,
+    type: tipo,
     data:{
-      labels:Object.keys(dados),
+      labels: Object.keys(dados),
       datasets:[{
-        data:Object.values(dados),
-        backgroundColor: cfg.corUnica || cfg.cores || cfg.cor,
-        borderColor: cfg.cor || cfg.corUnica,
-        borderWidth:0,
-        tension:0.4,
-        borderRadius: tipo==="bar"?8:0
+        data: Object.values(dados),
+        backgroundColor:
+          tipo === "line"
+            ? "rgba(56,189,248,0.25)"
+            : (cfg.corUnica || cfg.cores || cfg.cor),
+        borderColor: cfg.cor || cfg.corUnica || "#38BDF8",
+        borderWidth: 0,
+        fill: cfg.preenchido || false,
+        tension: 0.4,
+        borderRadius: tipo === "bar" ? 8 : 0,
+        pointRadius: tipo === "line" ? 4 : 0
       }]
     },
     options:{
       maintainAspectRatio:false,
-      rotation: cfg.gauge ? -Math.PI : 0,
-      circumference: cfg.gauge ? Math.PI : 2*Math.PI,
-      plugins:{ legend:{ position:"bottom" }},
-      scales: tipo!=="doughnut"?{
-        y:{ beginAtZero:true, grid:{display:false}}
-      }:{}
+      indexAxis: cfg.horizontal ? "y" : "x",
+      plugins:{
+        legend:{
+          position:"bottom",
+          labels:{
+            usePointStyle:true,
+            pointStyle:"circle"
+          }
+        }
+      },
+      scales: tipo !== "doughnut" ? {
+        x:{ grid:{ display:false }},
+        y:{ beginAtZero:true, grid:{ display:false }}
+      } : {}
     }
   });
 }
 
+/* =========================================================
+   CONTROLO DE GRÁFICOS
+========================================================= */
 function destruirGraficos(){
-  Object.values(charts).forEach(c=>c.destroy());
-  charts={};
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
 }
 
 /* =========================================================
@@ -189,46 +220,50 @@ function destruirGraficos(){
 ========================================================= */
 function contar(d,c){
   return d.reduce((a,x)=>{
-    const k = x[c] || "Não informado";
-    a[k]=(a[k]||0)+1;
+    if(!x[c]) return a;   // remove undefined
+    a[x[c]] = (a[x[c]] || 0) + 1;
     return a;
   },{});
 }
 
 function agruparMes(d){
-  const r={};
+  const r = {};
   d.forEach(x=>{
-    const dt=normalizarData(x.Data_Consulta);
+    const dt = normalizarData(x.Data_Consulta);
     if(!dt) return;
-    const k=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
-    r[k]=(r[k]||0)+1;
+    const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
+    r[k] = (r[k] || 0) + 1;
   });
   return r;
 }
 
 function ordenarMeses(o){
-  return Object.fromEntries(Object.entries(o).sort((a,b)=>a[0].localeCompare(b[0])));
+  return Object.fromEntries(
+    Object.entries(o).sort((a,b)=>a[0].localeCompare(b[0]))
+  );
 }
 
 function normalizarData(v){
   if(!v) return null;
-  if(typeof v==="number") return new Date((v-25569)*86400*1000);
-  const d=new Date(v);
-  return isNaN(d)?null:d;
+  if(typeof v === "number")
+    return new Date((v - 25569) * 86400 * 1000);
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
 }
 
 function preencherSelect(select,campo,base=dadosOriginais){
-  const vals=[...new Set(base.map(x=>x[campo]).filter(Boolean))];
-  select.innerHTML=`<option value="">Todos</option>`+
+  const vals = [...new Set(base.map(x=>x[campo]).filter(Boolean))];
+  select.innerHTML = `<option value="">Todos</option>` +
     vals.map(v=>`<option value="${v}">${v}</option>`).join("");
 }
 
 function preencherSelectAno(){
-  const anos=[...new Set(dadosOriginais.map(x=>{
-    const d=normalizarData(x.Data_Consulta);
-    return d?d.getFullYear():null;
+  const anos = [...new Set(dadosOriginais.map(x=>{
+    const d = normalizarData(x.Data_Consulta);
+    return d ? d.getFullYear() : null;
   }).filter(Boolean))];
-  filtroAno.innerHTML=`<option value="">Todos</option>`+
+
+  filtroAno.innerHTML = `<option value="">Todos</option>` +
     anos.sort().map(a=>`<option value="${a}">${a}</option>`).join("");
 }
 
