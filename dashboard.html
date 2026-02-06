@@ -2,23 +2,82 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard | HealthMonitor</title>
+  <title>HealthMonitor – Dashboard</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f6f8;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .card h2 {
+      margin: 5px 0;
+      color: #1e88e5;
+    }
+
+    .graficos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+
+    canvas {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+    }
+  </style>
 </head>
+
 <body>
 
-  <h2>Dashboard de Monitoria</h2>
+<h1>Dashboard de Monitoria em Saúde</h1>
 
-  <p>Selecione o ficheiro Excel para análise:</p>
+<input type="file" id="excelFile" accept=".xlsx,.xls">
 
-  <input type="file" id="excelFile" accept=".xlsx,.xls">
+<!-- CARDS -->
+<div class="cards">
+  <div class="card"><p>Total de atendimentos</p><h2 id="kpiTotal">0</h2></div>
+  <div class="card"><p>Primeira consulta</p><h2 id="kpiPrimeira">0</h2></div>
+  <div class="card"><p>Seguimento</p><h2 id="kpiSeguimento">0</h2></div>
+  <div class="card"><p>Taxa de seguimento</p><h2 id="kpiTaxa">0%</h2></div>
+  <div class="card"><p>Retenção</p><h2 id="kpiRetencao">0%</h2></div>
+</div>
 
-  <div id="output"></div>
+<!-- GRÁFICOS -->
+<div class="graficos">
+  <canvas id="graficoProvincia"></canvas>
+  <canvas id="graficoServico"></canvas>
+  <canvas id="graficoSexo"></canvas>
+  <canvas id="graficoDiagnostico"></canvas>
+</div>
 
-  <p>
-    <a href="index.html">← Voltar à página inicial</a>
-  </p>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="js/main.js"></script>
-
+<script src="js/main.js"></script>
 </body>
 </html>
