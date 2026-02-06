@@ -29,7 +29,7 @@ const CORES = {
   medico: "#38BDF8",
   distrito: "#2DD4BF",
   servico: ["#10B981","#34D399","#6EE7B7","#A7F3D0"],
-  diagnostico: "#7C3AED", // roxo único
+  diagnostico: "#7C3AED",
   sexo: ["#38BDF8","#818CF8"]
 };
 
@@ -139,25 +139,26 @@ function atualizarIndicadores(d) {
 function renderizarGraficos(d) {
   destruirGraficos();
 
-  // Atendimentos Mensais (linha com área preenchida)
   criarGrafico("grafMensal","line",d.mensal,{
     cor: CORES.medico,
     preenchido: true
   });
 
-  // Distribuição por Sexo (circular)
   criarGrafico("grafSexo","doughnut",d.sexo,{
     cores: CORES.sexo
   });
 
-  // Diagnósticos (barras horizontais, roxo único)
   criarGrafico("grafDiagnostico","bar",d.diagnostico,{
     corUnica: CORES.diagnostico,
     horizontal: true
   });
 
-  // Produtividade
-  criarGrafico("grafMedico","bar",d.medico,{ corUnica: CORES.medico });
+  /* 🔹 AJUSTE PEDIDO: MÉDICO EM BARRAS HORIZONTAIS */
+  criarGrafico("grafMedico","bar",d.medico,{
+    corUnica: CORES.medico,
+    horizontal: true
+  });
+
   criarGrafico("grafServico","bar",d.servico,{ cores: CORES.servico });
   criarGrafico("grafDistrito","bar",d.distrito,{ corUnica: CORES.distrito });
 }
@@ -218,12 +219,17 @@ function destruirGraficos(){
 /* =========================================================
    AUXILIARES
 ========================================================= */
-function contar(d,c){
-  return d.reduce((a,x)=>{
-    if(!x[c]) return a;   // remove undefined
-    a[x[c]] = (a[x[c]] || 0) + 1;
-    return a;
-  },{});
+/* 🔹 AJUSTE PEDIDO: REMOVER TODOS OS UNDEFINED */
+function contar(d, c){
+  return d.reduce((acc, row) => {
+    if (!row[c]) return acc;
+
+    const valor = String(row[c]).trim();
+    if (!valor || valor.toLowerCase() === "undefined") return acc;
+
+    acc[valor] = (acc[valor] || 0) + 1;
+    return acc;
+  }, {});
 }
 
 function agruparMes(d){
