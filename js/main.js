@@ -6,13 +6,15 @@ let charts = {};
 let mapa;
 
 /* =========================================================
-   PALETA DE CORES INSTITUCIONAL
+   PALETA DE CORES INSTITUCIONAL (Falcandra)
 ========================================================= */
 const CORES = {
-  azul: "#1f4fd8",
+  azulEscuro: "#0f172a",
+  azul: "#1e3a8a",
+  azulMedio: "#2563eb",
+  azulClaro: "#60a5fa",
   dourado: "#c9a24d",
-  cinza: "#e5e7eb",
-  preto: "#111827"
+  cinza: "#e5e7eb"
 };
 
 /* =========================================================
@@ -43,20 +45,26 @@ function inicializarFiltros(dados) {
   preencherSelect("filtroProvincia", dados, "Provincia");
   preencherSelect("filtroServico", dados, "Servico");
   preencherSelectAno("filtroAno", dados);
+
   document.getElementById("filtroDistrito").innerHTML =
     `<option value="">Todos</option>`;
 }
 
 ["filtroProvincia", "filtroDistrito", "filtroServico", "filtroAno"]
-  .forEach(id => document.getElementById(id).addEventListener("change", aplicarFiltros));
+  .forEach(id =>
+    document.getElementById(id).addEventListener("change", aplicarFiltros)
+  );
 
 document.getElementById("filtroProvincia").addEventListener("change", () => {
   const provincia = document.getElementById("filtroProvincia").value;
+
   const dadosFiltrados = provincia
     ? dadosOriginais.filter(d => d.Provincia === provincia)
     : dadosOriginais;
 
   preencherSelect("filtroDistrito", dadosFiltrados, "Distrito");
+  document.getElementById("filtroDistrito").value = "";
+  aplicarFiltros();
 });
 
 /* =========================================================
@@ -109,8 +117,23 @@ function motorIndicadoresSaude(dados) {
   const porDiagnostico = contar(dados, "Diagnostico");
   const porMes = agruparPorMes(dados);
 
-  renderizarCards({ total, primeira, seguimento, taxaSeguimento, taxaRetencao });
-  renderizarGraficos({ porProvincia, porDistrito, porServico, porSexo, porDiagnostico, porMes });
+  renderizarCards({
+    total,
+    primeira,
+    seguimento,
+    taxaSeguimento,
+    taxaRetencao
+  });
+
+  renderizarGraficos({
+    porProvincia,
+    porDistrito,
+    porServico,
+    porSexo,
+    porDiagnostico,
+    porMes
+  });
+
   renderizarMapa(porProvincia);
 }
 
@@ -121,8 +144,8 @@ function normalizarData(valor) {
   if (!valor) return null;
 
   if (typeof valor === "number") {
-    const utc_days = Math.floor(valor - 25569);
-    return new Date(utc_days * 86400 * 1000);
+    const utc = Math.floor(valor - 25569);
+    return new Date(utc * 86400 * 1000);
   }
 
   const d = new Date(valor);
@@ -143,7 +166,10 @@ function agruparPorMes(dados) {
     const dt = normalizarData(d.Data_Consulta);
     if (!dt) return;
 
-    const chave = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    const chave = `${dt.getFullYear()}-${String(
+      dt.getMonth() + 1
+    ).padStart(2, "0")}`;
+
     res[chave] = (res[chave] || 0) + 1;
   });
   return res;
@@ -152,6 +178,7 @@ function agruparPorMes(dados) {
 function preencherSelect(id, dados, campo) {
   const select = document.getElementById(id);
   const valores = [...new Set(dados.map(d => d[campo]).filter(Boolean))];
+
   select.innerHTML =
     `<option value="">Todos</option>` +
     valores.map(v => `<option value="${v}">${v}</option>`).join("");
@@ -201,7 +228,7 @@ function renderizarGraficos(d) {
   criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais");
 }
 
-function criarGrafico(id, tipo, dados, label) {
+function criarGrafico(id, tipo, dados, titulo) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
 
@@ -210,10 +237,16 @@ function criarGrafico(id, tipo, dados, label) {
     data: {
       labels: Object.keys(dados),
       datasets: [{
-        label,
+        label: titulo,
         data: Object.values(dados),
-        backgroundColor: CORES.azul,
-        borderColor: CORES.azul,
+        backgroundColor: [
+          CORES.azulEscuro,
+          CORES.azul,
+          CORES.azulMedio,
+          CORES.azulClaro,
+          CORES.dourado
+        ],
+        borderWidth: 1,
         tension: 0.3
       }]
     },
@@ -221,16 +254,15 @@ function criarGrafico(id, tipo, dados, label) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          labels: { font: { size: 11 } }
+        legend: { position: "top" },
+        title: {
+          display: true,
+          text: titulo,
+          font: { size: 16, weight: "bold" }
         }
       },
-      scales: tipo !== "doughnut" && tipo !== "pie" ? {
-        y: {
-          beginAtZero: true,
-          grid: { color: "#eee" }
-        },
-        x: { grid: { display: false } }
+      scales: tipo !== "pie" && tipo !== "doughnut" ? {
+        y: { beginAtZero: true }
       } : {}
     }
   });
@@ -243,17 +275,20 @@ function renderizarMapa(dadosProvincia) {
   if (mapa) mapa.remove();
 
   mapa = L.map("mapa").setView([-18.7, 35.5], 5);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(mapa);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap"
+  }).addTo(mapa);
 
   fetch("mocambique_provincias.geojson")
     .then(r => r.json())
     .then(geo => {
       L.geoJSON(geo, {
         style: f => ({
-          fillColor: cor(dadosProvincia[f.properties.name] || 0),
+          fillColor: corMapa(dadosProvincia[f.properties.name] || 0),
           weight: 1,
           color: "#333",
-          fillOpacity: 0.7
+          fillOpacity: 0.75
         }),
         onEachFeature: (f, layer) => {
           const v = dadosProvincia[f.properties.name] || 0;
@@ -265,10 +300,10 @@ function renderizarMapa(dadosProvincia) {
     });
 }
 
-function cor(v) {
-  if (v > 200) return "#1f4fd8";
-  if (v > 100) return "#4f83ff";
-  if (v > 50) return "#9db7ff";
-  if (v > 0) return "#dce5ff";
-  return "#f0f0f0";
+function corMapa(v) {
+  if (v > 200) return CORES.azulEscuro;
+  if (v > 100) return CORES.azul;
+  if (v > 50) return CORES.azulMedio;
+  if (v > 0) return CORES.azulClaro;
+  return CORES.cinza;
 }
