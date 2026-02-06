@@ -5,13 +5,27 @@ let dadosOriginais = [];
 let charts = {};
 
 /* =========================================================
-   CORES (APENAS PARA GRÁFICOS)
+   CORES PROFISSIONAIS (SAÚDE PÚBLICA)
 ========================================================= */
-const CORES_GRAFICOS = {
-  azul: "#38BDF8",
-  feminino: "#818CF8",
-  masculino: "#38BDF8",
-  barras: "#38BDF8"
+const CORES = {
+  medico: "#38BDF8",          // Azul Sereno
+  distrito: "#2DD4BF",        // Verde Água / Menta
+  servicoGradient: [
+    "#10B981",
+    "#34D399",
+    "#6EE7B7",
+    "#A7F3D0"
+  ],
+  diagnosticos: [
+    "#10B981", // Esmeralda
+    "#2563EB", // Safira
+    "#7C3AED", // Ametista
+    "#64748B"  // Ardósia
+  ],
+  sexo: {
+    masculino: "#38BDF8",
+    feminino: "#818CF8"
+  }
 };
 
 /* =========================================================
@@ -49,7 +63,6 @@ function inicializarFiltros() {
     document.getElementById(id).addEventListener("change", aplicarFiltros)
   );
 
-/* ---- Distrito dependente da Província ---- */
 filtroProvincia.addEventListener("change", () => {
   const base = filtroProvincia.value
     ? dadosOriginais.filter(d => d.Provincia === filtroProvincia.value)
@@ -117,29 +130,34 @@ function calcularIndicadores(d) {
 function renderizarGraficos(d) {
   destruirGraficos();
 
-  /* Atendimentos Mensais */
   criarGrafico("grafMensal","line",d.mensal,{
-    cor: CORES_GRAFICOS.azul,
-    preenchido: true,
-    legenda: false,
-    pontos: false
+    cor: CORES.medico,
+    preenchido:true,
+    legenda:false,
+    pontos:false
   });
 
-  /* Distribuição por Sexo */
+  /* Sexo — Gauge (semicírculo) */
   criarGrafico("grafSexo","doughnut",d.sexo,{
-    cores: [CORES_GRAFICOS.masculino, CORES_GRAFICOS.feminino],
-    legenda: true
+    cores:[CORES.sexo.masculino, CORES.sexo.feminino],
+    gauge:true
   });
 
-  /* Diagnósticos */
   criarGrafico("grafDiagnostico","bar",d.diagnostico,{
-    corUnica: CORES_GRAFICOS.barras
+    cores: CORES.diagnosticos
   });
 
-  /* Produtividade */
-  criarGrafico("grafMedico","bar",d.medico,{ corUnica: CORES_GRAFICOS.barras });
-  criarGrafico("grafDistrito","bar",d.distrito,{ corUnica: CORES_GRAFICOS.barras });
-  criarGrafico("grafServico","bar",d.servico,{ corUnica: CORES_GRAFICOS.barras });
+  criarGrafico("grafMedico","bar",d.medico,{
+    corUnica: CORES.medico
+  });
+
+  criarGrafico("grafServico","bar",d.servico,{
+    cores: CORES.servicoGradient
+  });
+
+  criarGrafico("grafDistrito","bar",d.distrito,{
+    corUnica: CORES.distrito
+  });
 }
 
 function criarGrafico(id,tipo,dados,cfg={}) {
@@ -149,29 +167,29 @@ function criarGrafico(id,tipo,dados,cfg={}) {
   charts[id] = new Chart(ctx,{
     type: tipo,
     data:{
-      labels: Object.keys(dados),
+      labels:Object.keys(dados),
       datasets:[{
-        data: Object.values(dados),
-        backgroundColor: cfg.corUnica || cfg.cores || CORES_GRAFICOS.azul,
-        borderColor: cfg.cor || cfg.corUnica || CORES_GRAFICOS.azul,
-        borderWidth: 0,
-        fill: cfg.preenchido || false,
-        tension: 0.4,
+        data:Object.values(dados),
+        backgroundColor: cfg.corUnica || cfg.cores,
+        borderWidth:0,
+        fill:cfg.preenchido || false,
+        tension:0.4,
         pointRadius: cfg.pontos === false ? 0 : 3,
-        pointStyle: "circle",
-        borderRadius: tipo === "bar" ? { topLeft: 8, topRight: 8 } : 0
+        borderRadius: tipo === "bar" ? 8 : 0
       }]
     },
     options:{
       maintainAspectRatio:false,
+      rotation: cfg.gauge ? -90 : 0,
+      circumference: cfg.gauge ? 180 : 360,
       plugins:{
         legend:{
-          display: cfg.legenda === true,
-          labels:{ usePointStyle:true }
+          display:true,
+          position:"bottom"
         }
       },
       scales: tipo !== "doughnut" ? {
-        x:{ ticks:{ autoSkip:true, maxRotation:0 }},
+        x:{ ticks:{ autoSkip:true }},
         y:{ beginAtZero:true, grid:{ display:false }}
       } : {}
     }
@@ -205,7 +223,6 @@ function agruparMes(d){
   return r;
 }
 
-/* ---- ordenação cronológica ---- */
 function ordenarMeses(obj){
   return Object.fromEntries(
     Object.entries(obj).sort((a,b)=>a[0].localeCompare(b[0]))
