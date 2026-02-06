@@ -7,14 +7,12 @@ let charts = {};
 /* =========================================================
    CORES (APENAS PARA GRÁFICOS)
 ========================================================= */
-const CORES_GRAFICOS = [
-  "#ff4f70",
-  "#ff8a00",
-  "#3cc3ff",
-  "#a855f7",
-  "#facc15",
-  "#22c55e"
-];
+const CORES_GRAFICOS = {
+  azul: "#38BDF8",
+  feminino: "#818CF8",
+  masculino: "#38BDF8",
+  barras: "#38BDF8"
+};
 
 /* =========================================================
    UPLOAD DO EXCEL
@@ -47,8 +45,11 @@ function inicializarFiltros() {
 }
 
 ["filtroProvincia","filtroDistrito","filtroServico","filtroAno"]
-  .forEach(id => document.getElementById(id).addEventListener("change", aplicarFiltros));
+  .forEach(id =>
+    document.getElementById(id).addEventListener("change", aplicarFiltros)
+  );
 
+/* ---- Distrito dependente da Província ---- */
 filtroProvincia.addEventListener("change", () => {
   const base = filtroProvincia.value
     ? dadosOriginais.filter(d => d.Provincia === filtroProvincia.value)
@@ -83,17 +84,25 @@ function aplicarFiltros() {
 ========================================================= */
 function calcularIndicadores(d) {
   const total = d.length;
-  const primeira = d.filter(x => String(x.Tipo_Consulta).toLowerCase().includes("primeira")).length;
-  const seguimento = d.filter(x => String(x.Tipo_Consulta).toLowerCase().includes("seguimento")).length;
+  const primeira = d.filter(x =>
+    String(x.Tipo_Consulta).toLowerCase().includes("primeira")
+  ).length;
+
+  const seguimento = d.filter(x =>
+    String(x.Tipo_Consulta).toLowerCase().includes("seguimento")
+  ).length;
 
   cardTotal.textContent = total;
   cardPrimeira.textContent = primeira;
   cardSeguimento.textContent = seguimento;
-  cardTaxaSeguimento.textContent = total ? ((seguimento / total) * 100).toFixed(1) + "%" : "0%";
-  cardRetencao.textContent = total ? ((d.filter(x => x.Proxima_Consulta).length / total) * 100).toFixed(1) + "%" : "0%";
+  cardTaxaSeguimento.textContent =
+    total ? ((seguimento / total) * 100).toFixed(1) + "%" : "0%";
+
+  cardRetencao.textContent =
+    total ? ((d.filter(x => x.Proxima_Consulta).length / total) * 100).toFixed(1) + "%" : "0%";
 
   renderizarGraficos({
-    mensal: agruparMes(d),
+    mensal: ordenarMeses(agruparMes(d)),
     sexo: contar(d,"Sexo"),
     diagnostico: contar(d,"Diagnostico"),
     medico: contar(d,"Nome_Medico"),
@@ -108,61 +117,68 @@ function calcularIndicadores(d) {
 function renderizarGraficos(d) {
   destruirGraficos();
 
+  /* Atendimentos Mensais */
   criarGrafico("grafMensal","line",d.mensal,{
-    cor:"#3cc3ff",
-    preenchido:true,
-    legenda:false,
-    pontos:false
+    cor: CORES_GRAFICOS.azul,
+    preenchido: true,
+    legenda: false,
+    pontos: false
   });
 
+  /* Distribuição por Sexo */
   criarGrafico("grafSexo","doughnut",d.sexo,{
-    cores:["#ff4f70","#ff8a00"],
-    legenda:true
+    cores: [CORES_GRAFICOS.masculino, CORES_GRAFICOS.feminino],
+    legenda: true
   });
 
-  criarGrafico("grafDiagnostico","bar",d.diagnostico,{ cores:CORES_GRAFICOS });
-  criarGrafico("grafMedico","bar",d.medico,{ corUnica:"#ff4f70" });
-  criarGrafico("grafDistrito","bar",d.distrito,{ corUnica:"#ff4f70" });
-  criarGrafico("grafServico","bar",d.servico,{ corUnica:"#ff4f70" });
+  /* Diagnósticos */
+  criarGrafico("grafDiagnostico","bar",d.diagnostico,{
+    corUnica: CORES_GRAFICOS.barras
+  });
+
+  /* Produtividade */
+  criarGrafico("grafMedico","bar",d.medico,{ corUnica: CORES_GRAFICOS.barras });
+  criarGrafico("grafDistrito","bar",d.distrito,{ corUnica: CORES_GRAFICOS.barras });
+  criarGrafico("grafServico","bar",d.servico,{ corUnica: CORES_GRAFICOS.barras });
 }
 
 function criarGrafico(id,tipo,dados,cfg={}) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
 
-  charts[id] = new Chart(ctx, {
+  charts[id] = new Chart(ctx,{
     type: tipo,
-    data: {
+    data:{
       labels: Object.keys(dados),
-      datasets: [{
+      datasets:[{
         data: Object.values(dados),
-        backgroundColor: cfg.corUnica || cfg.cores || "#3cc3ff",
-        borderColor: cfg.corUnica || cfg.cor || "#3cc3ff",
+        backgroundColor: cfg.corUnica || cfg.cores || CORES_GRAFICOS.azul,
+        borderColor: cfg.cor || cfg.corUnica || CORES_GRAFICOS.azul,
         borderWidth: 0,
         fill: cfg.preenchido || false,
         tension: 0.4,
-        pointRadius: cfg.pontos === false ? 0 : 4,
+        pointRadius: cfg.pontos === false ? 0 : 3,
         pointStyle: "circle",
-        borderRadius: tipo === "bar" ? { topLeft: 10, topRight: 10 } : 0
+        borderRadius: tipo === "bar" ? { topLeft: 8, topRight: 8 } : 0
       }]
     },
-    options: {
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
+    options:{
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{
           display: cfg.legenda === true,
-          labels: { usePointStyle: true }
+          labels:{ usePointStyle:true }
         }
       },
       scales: tipo !== "doughnut" ? {
-        x: { ticks: { autoSkip: true, maxRotation: 0 } },
-        y: { beginAtZero: true, grid: { display: false } }
+        x:{ ticks:{ autoSkip:true, maxRotation:0 }},
+        y:{ beginAtZero:true, grid:{ display:false }}
       } : {}
     }
   });
 }
 
-function destruirGraficos() {
+function destruirGraficos(){
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
 }
@@ -170,45 +186,53 @@ function destruirGraficos() {
 /* =========================================================
    AUXILIARES
 ========================================================= */
-function contar(d,c) {
-  return d.reduce((a,x) => {
+function contar(d,c){
+  return d.reduce((a,x)=>{
     const k = x[c] || "Não informado";
     a[k] = (a[k] || 0) + 1;
     return a;
-  }, {});
+  },{});
 }
 
-function agruparMes(d) {
+function agruparMes(d){
   const r = {};
-  d.forEach(x => {
+  d.forEach(x=>{
     const dt = normalizarData(x.Data_Consulta);
-    if (!dt) return;
+    if(!dt) return;
     const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
     r[k] = (r[k] || 0) + 1;
   });
   return r;
 }
 
-function normalizarData(v) {
-  if (!v) return null;
-  if (typeof v === "number") return new Date((v - 25569) * 86400 * 1000);
+/* ---- ordenação cronológica ---- */
+function ordenarMeses(obj){
+  return Object.fromEntries(
+    Object.entries(obj).sort((a,b)=>a[0].localeCompare(b[0]))
+  );
+}
+
+function normalizarData(v){
+  if(!v) return null;
+  if(typeof v === "number")
+    return new Date((v - 25569) * 86400 * 1000);
   const d = new Date(v);
   return isNaN(d) ? null : d;
 }
 
-function preencherSelect(id,campo,base=dadosOriginais) {
+function preencherSelect(id,campo,base=dadosOriginais){
   const s = document.getElementById(id);
-  const vals = [...new Set(base.map(x => x[campo]).filter(Boolean))];
+  const vals = [...new Set(base.map(x=>x[campo]).filter(Boolean))];
   s.innerHTML = `<option value="">Todos</option>` +
-    vals.map(v => `<option value="${v}">${v}</option>`).join("");
+    vals.map(v=>`<option value="${v}">${v}</option>`).join("");
 }
 
-function preencherSelectAno() {
-  const anos = [...new Set(dadosOriginais.map(x => {
+function preencherSelectAno(){
+  const anos = [...new Set(dadosOriginais.map(x=>{
     const d = normalizarData(x.Data_Consulta);
     return d ? d.getFullYear() : null;
   }).filter(Boolean))];
 
   filtroAno.innerHTML = `<option value="">Todos</option>` +
-    anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
+    anos.sort().map(a=>`<option value="${a}">${a}</option>`).join("");
 }
