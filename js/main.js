@@ -8,14 +8,13 @@ let mapa;
 /* =========================================================
    PALETA DE CORES INSTITUCIONAL (Falcandra)
 ========================================================= */
-const CORES = {
-  azulEscuro: "#0f172a",
-  azul: "#1e3a8a",
-  azulMedio: "#2563eb",
-  azulClaro: "#60a5fa",
-  dourado: "#c9a24d",
-  cinza: "#e5e7eb"
-};
+const CORES = [
+  "#0f172a", // azul escuro
+  "#1e3a8a",
+  "#2563eb",
+  "#60a5fa",
+  "#c9a24d"  // dourado
+];
 
 /* =========================================================
    UPLOAD DO EXCEL
@@ -115,6 +114,7 @@ function motorIndicadoresSaude(dados) {
   const porServico = contar(dados, "Servico");
   const porSexo = contar(dados, "Sexo");
   const porDiagnostico = contar(dados, "Diagnostico");
+  const porMedico = contar(dados, "Nome_Medico");
   const porMes = agruparPorMes(dados);
 
   renderizarCards({
@@ -131,6 +131,7 @@ function motorIndicadoresSaude(dados) {
     porServico,
     porSexo,
     porDiagnostico,
+    porMedico,
     porMes
   });
 
@@ -225,6 +226,7 @@ function renderizarGraficos(d) {
   criarGrafico("grafServico", "doughnut", d.porServico, "Atendimentos por Serviço");
   criarGrafico("grafSexo", "pie", d.porSexo, "Distribuição por Sexo");
   criarGrafico("grafDiagnostico", "bar", d.porDiagnostico, "Diagnósticos");
+  criarGrafico("grafMedico", "bar", d.porMedico, "Produtividade por Médico");
   criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais");
 }
 
@@ -239,30 +241,40 @@ function criarGrafico(id, tipo, dados, titulo) {
       datasets: [{
         label: titulo,
         data: Object.values(dados),
-        backgroundColor: [
-          CORES.azulEscuro,
-          CORES.azul,
-          CORES.azulMedio,
-          CORES.azulClaro,
-          CORES.dourado
-        ],
-        borderWidth: 1,
-        tension: 0.3
+        backgroundColor: CORES,
+        borderColor: CORES[2],
+        borderWidth: 2,
+        pointStyle: "circle",
+        pointRadius: tipo === "line" ? 4 : 0,
+        tension: 0.35
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: "top" },
+        legend: {
+          labels: {
+            usePointStyle: true
+          }
+        },
         title: {
           display: true,
           text: titulo,
-          font: { size: 16, weight: "bold" }
+          font: {
+            size: 15,
+            weight: "bold"
+          }
         }
       },
       scales: tipo !== "pie" && tipo !== "doughnut" ? {
-        y: { beginAtZero: true }
+        y: {
+          beginAtZero: true,
+          grid: { color: "#e5e7eb" }
+        },
+        x: {
+          grid: { display: false }
+        }
       } : {}
     }
   });
@@ -287,7 +299,7 @@ function renderizarMapa(dadosProvincia) {
         style: f => ({
           fillColor: corMapa(dadosProvincia[f.properties.name] || 0),
           weight: 1,
-          color: "#333",
+          color: "#334155",
           fillOpacity: 0.75
         }),
         onEachFeature: (f, layer) => {
@@ -301,9 +313,9 @@ function renderizarMapa(dadosProvincia) {
 }
 
 function corMapa(v) {
-  if (v > 200) return CORES.azulEscuro;
-  if (v > 100) return CORES.azul;
-  if (v > 50) return CORES.azulMedio;
-  if (v > 0) return CORES.azulClaro;
-  return CORES.cinza;
+  if (v > 200) return CORES[0];
+  if (v > 100) return CORES[1];
+  if (v > 50) return CORES[2];
+  if (v > 0) return CORES[3];
+  return "#f1f5f9";
 }
