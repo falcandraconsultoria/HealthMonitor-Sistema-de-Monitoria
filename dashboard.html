@@ -112,6 +112,7 @@
     .card span{
       font-size:30px;
       font-weight:800;
+      color:var(--text-main);
     }
 
     /* ================= GRÁFICOS ================= */
@@ -133,6 +134,7 @@
       margin:0 0 12px;
       font-size:14px;
       font-weight:600;
+      color:var(--text-main);
     }
 
     canvas{
@@ -158,34 +160,65 @@
 
 <div class="container">
 
-  <!-- FILTROS -->
+  <!-- ================= FILTROS ================= -->
   <div class="filtros">
     <div class="filtro-box">
       <label>Fonte de Dados</label>
       <input type="file" id="excelFile" accept=".xlsx,.xls">
     </div>
-    <div class="filtro-box"><label>Província</label><select></select></div>
-    <div class="filtro-box"><label>Distrito</label><select></select></div>
-    <div class="filtro-box"><label>Serviço</label><select></select></div>
-    <div class="filtro-box"><label>Ano</label><select></select></div>
+    <div class="filtro-box">
+      <label>Província</label>
+      <select id="filtroProvincia"></select>
+    </div>
+    <div class="filtro-box">
+      <label>Distrito</label>
+      <select id="filtroDistrito"></select>
+    </div>
+    <div class="filtro-box">
+      <label>Serviço</label>
+      <select id="filtroServico"></select>
+    </div>
+    <div class="filtro-box">
+      <label>Ano</label>
+      <select id="filtroAno"></select>
+    </div>
   </div>
 
-  <!-- CARDS -->
+  <!-- ================= CARDS ================= -->
   <div class="cards">
-    <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span>0</span></div>
-    <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span>0</span></div>
-    <div class="card"><i class="fa-solid fa-rotate"></i><h3>Seguimento</h3><span>0</span></div>
-    <div class="card"><i class="fa-solid fa-percent"></i><h3>Taxa Seguimento</h3><span>0%</span></div>
-    <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span>0%</span></div>
+    <div class="card">
+      <i class="fa-solid fa-users"></i>
+      <h3>Total Atendimentos</h3>
+      <span id="cardTotal">0</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-stethoscope"></i>
+      <h3>Primeira Consulta</h3>
+      <span id="cardPrimeira">0</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-rotate"></i>
+      <h3>Seguimento</h3>
+      <span id="cardSeguimento">0</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-percent"></i>
+      <h3>Taxa Seguimento</h3>
+      <span id="cardTaxaSeguimento">0%</span>
+    </div>
+    <div class="card">
+      <i class="fa-solid fa-heart-pulse"></i>
+      <h3>Retenção</h3>
+      <span id="cardRetencao">0%</span>
+    </div>
   </div>
 
-  <!-- MENSAL -->
+  <!-- ================= GRÁFICOS ================= -->
   <div class="box">
     <h4>Atendimentos Mensais</h4>
     <canvas id="grafMensal"></canvas>
   </div>
 
-  <!-- SEXO + DIAGNÓSTICO -->
   <div class="grid">
     <div class="box">
       <h4>Distribuição por Sexo</h4>
@@ -197,7 +230,6 @@
     </div>
   </div>
 
-  <!-- MÉDICO + SERVIÇO -->
   <div class="grid">
     <div class="box">
       <h4>Produtividade por Médico</h4>
@@ -209,7 +241,6 @@
     </div>
   </div>
 
-  <!-- DISTRITO (LINHA INTEIRA) -->
   <div class="box">
     <h4>Produtividade por Distrito</h4>
     <canvas id="grafDistrito"></canvas>
