@@ -5,7 +5,7 @@ let dadosOriginais = [];
 let charts = {};
 
 /* =========================================================
-   PALETA DE CORES (AZUL + LARANJA)
+   PALETA DE CORES (LEVE E PROFISSIONAL)
 ========================================================= */
 const CORES = {
   azul: "#2563eb",
@@ -53,14 +53,14 @@ function inicializarFiltros(dados) {
   .forEach(id => document.getElementById(id).addEventListener("change", aplicarFiltros));
 
 document.getElementById("filtroProvincia").addEventListener("change", () => {
-  const provincia = document.getElementById("filtroProvincia").value;
+  const provincia = filtroProvincia.value;
 
   const filtrados = provincia
     ? dadosOriginais.filter(d => d.Provincia === provincia)
     : dadosOriginais;
 
   preencherSelect("filtroDistrito", filtrados, "Distrito");
-  document.getElementById("filtroDistrito").value = "";
+  filtroDistrito.value = "";
   aplicarFiltros();
 });
 
@@ -89,7 +89,7 @@ function aplicarFiltros() {
 }
 
 /* =========================================================
-   MOTOR DE INDICADORES
+   MOTOR DE INDICADORES DE SAÚDE
 ========================================================= */
 function motorIndicadoresSaude(dados) {
   const total = dados.length;
@@ -178,7 +178,7 @@ function renderizarCards(i) {
 }
 
 /* =========================================================
-   GRÁFICOS
+   GRÁFICOS (COMPLETO)
 ========================================================= */
 function resetGraficos() {
   Object.values(charts).forEach(c => c.destroy());
@@ -207,7 +207,7 @@ function graf(id, tipo, dados, titulo, cor, pontos=false) {
       datasets: [{
         label: titulo,
         data: Object.values(dados),
-        backgroundColor: Array.isArray(cor) ? cor : cor,
+        backgroundColor: cor,
         borderColor: cor,
         borderWidth: 2,
         pointRadius: pontos ? 4 : 0,
