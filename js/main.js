@@ -89,8 +89,8 @@ function calcularIndicadores(d) {
   cardTotal.textContent = total;
   cardPrimeira.textContent = primeira;
   cardSeguimento.textContent = seguimento;
-  cardTaxaSeguimento.textContent = total ? ((seguimento/total)*100).toFixed(1)+"%" : "0%";
-  cardRetencao.textContent = total ? ((d.filter(x=>x.Proxima_Consulta).length/total)*100).toFixed(1)+"%" : "0%";
+  cardTaxaSeguimento.textContent = total ? ((seguimento / total) * 100).toFixed(1) + "%" : "0%";
+  cardRetencao.textContent = total ? ((d.filter(x => x.Proxima_Consulta).length / total) * 100).toFixed(1) + "%" : "0%";
 
   renderizarGraficos({
     mensal: agruparMes(d),
@@ -128,85 +128,87 @@ function renderizarGraficos(d) {
 
 function criarGrafico(id,tipo,dados,cfg={}) {
   const ctx = document.getElementById(id);
-  if(!ctx) return;
+  if (!ctx) return;
 
-  charts[id]=new Chart(ctx,{
-    type:tipo,
-    data:{
-      labels:Object.keys(dados),
-      datasets:[{
-        data:Object.values(dados),
+  charts[id] = new Chart(ctx, {
+    type: tipo,
+    data: {
+      labels: Object.keys(dados),
+      datasets: [{
+        data: Object.values(dados),
         backgroundColor: cfg.corUnica || cfg.cores || "#3cc3ff",
         borderColor: cfg.corUnica || cfg.cor || "#3cc3ff",
-        borderWidth:0,
-        fill:cfg.preenchido||false,
-        tension:0.4,
-        pointRadius: cfg.pontos===false ? 0 : 4,
-        borderRadius: tipo==="bar"?{topLeft:10,topRight:10}:0
+        borderWidth: 0,
+        fill: cfg.preenchido || false,
+        tension: 0.4,
+        pointRadius: cfg.pontos === false ? 0 : 4,
+        pointStyle: "circle",
+        borderRadius: tipo === "bar" ? { topLeft: 10, topRight: 10 } : 0
       }]
     },
-    options:{
-      maintainAspectRatio:false,
-      plugins:{
-        legend:{
-          display: cfg.legenda===true,
-          labels:{ usePointStyle:true }
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: cfg.legenda === true,
+          labels: { usePointStyle: true }
         }
       },
-      scales: tipo!=="doughnut"?{
-        x:{ ticks:{ autoSkip:true, maxRotation:0 }},
-        y:{ beginAtZero:true, grid:{ display:false }}
-      }:{}
+      scales: tipo !== "doughnut" ? {
+        x: { ticks: { autoSkip: true, maxRotation: 0 } },
+        y: { beginAtZero: true, grid: { display: false } }
+      } : {}
     }
   });
 }
 
-function destruirGraficos(){
-  Object.values(charts).forEach(c=>c.destroy());
-  charts={};
+function destruirGraficos() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
 }
 
 /* =========================================================
    AUXILIARES
 ========================================================= */
-function contar(d,c){
-  return d.reduce((a,x)=>{
-    const k=x[c]||"Não informado";
-    a[k]=(a[k]||0)+1;
+function contar(d,c) {
+  return d.reduce((a,x) => {
+    const k = x[c] || "Não informado";
+    a[k] = (a[k] || 0) + 1;
     return a;
-  },{});
+  }, {});
 }
 
-function agruparMes(d){
-  const r={};
-  d.forEach(x=>{
-    const dt=normalizarData(x.Data_Consulta);
-    if(!dt)return;
-    const k=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
-    r[k]=(r[k]||0)+1;
+function agruparMes(d) {
+  const r = {};
+  d.forEach(x => {
+    const dt = normalizarData(x.Data_Consulta);
+    if (!dt) return;
+    const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
+    r[k] = (r[k] || 0) + 1;
   });
   return r;
 }
 
-function normalizarData(v){
-  if(!v)return null;
-  if(typeof v==="number") return new Date((v-25569)*86400*1000);
-  const d=new Date(v);
-  return isNaN(d)?null:d;
+function normalizarData(v) {
+  if (!v) return null;
+  if (typeof v === "number") return new Date((v - 25569) * 86400 * 1000);
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
 }
 
-function preencherSelect(id,campo,base=dadosOriginais){
-  const s=document.getElementById(id);
-  const vals=[...new Set(base.map(x=>x[campo]).filter(Boolean))];
-  s.innerHTML=`<option value="">Todos</option>`+
-    vals.map(v=>`<option value="${v}">${v}</option>`).join("");
+function preencherSelect(id,campo,base=dadosOriginais) {
+  const s = document.getElementById(id);
+  const vals = [...new Set(base.map(x => x[campo]).filter(Boolean))];
+  s.innerHTML = `<option value="">Todos</option>` +
+    vals.map(v => `<option value="${v}">${v}</option>`).join("");
 }
 
-function preencherSelectAno(){
-  const anos=[...new Set(dadosOriginais.map(x=>{
-    const d=normalizarData(x.Data_Consulta);
-    return d?d.getFullYear():null;
+function preencherSelectAno() {
+  const anos = [...new Set(dadosOriginais.map(x => {
+    const d = normalizarData(x.Data_Consulta);
+    return d ? d.getFullYear() : null;
   }).filter(Boolean))];
-  filtroAno.innerHTML=`<option value="">Todos</option>`+
-    anos.sort().map(a=>`<option value="${a}">${a}</option>`).join("");
+
+  filtroAno.innerHTML = `<option value="">Todos</option>` +
+    anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
 }
