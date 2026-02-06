@@ -4,54 +4,31 @@
   <meta charset="UTF-8">
   <title>HealthMonitor – Dashboard</title>
 
-  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- SheetJS -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f4f6f8;
-    }
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 20px; }
+    h1 { margin-bottom: 10px; }
 
-    h1 {
-      margin-bottom: 10px;
-    }
+    .filtros, .cards { display: grid; gap: 15px; margin-bottom: 20px; }
+    .filtros { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    select, input { padding: 8px; }
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 15px;
-      margin-bottom: 30px;
-    }
-
+    .cards { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
     .card {
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      background: white; padding: 15px; border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
       text-align: center;
     }
+    .card span { font-size: 26px; font-weight: bold; color: #2c7be5; }
 
-    .card h2 {
-      margin: 5px 0;
-      color: #1e88e5;
-    }
-
-    .graficos {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 30px;
-    }
-
-    canvas {
-      background: white;
-      padding: 15px;
-      border-radius: 6px;
-    }
+    .graficos { display: grid; gap: 30px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    canvas, #mapa { background: white; padding: 10px; border-radius: 10px; }
+    #mapa { height: 420px; }
   </style>
 </head>
 
@@ -59,24 +36,33 @@
 
 <h1>Dashboard de Monitoria em Saúde</h1>
 
-<input type="file" id="excelFile" accept=".xlsx,.xls">
+<input type="file" id="excelFile">
 
-<!-- CARDS -->
+<div class="filtros">
+  <select id="filtroProvincia"></select>
+  <select id="filtroDistrito"></select>
+  <select id="filtroServico"></select>
+  <select id="filtroAno"></select>
+</div>
+
 <div class="cards">
-  <div class="card"><p>Total de atendimentos</p><h2 id="kpiTotal">0</h2></div>
-  <div class="card"><p>Primeira consulta</p><h2 id="kpiPrimeira">0</h2></div>
-  <div class="card"><p>Seguimento</p><h2 id="kpiSeguimento">0</h2></div>
-  <div class="card"><p>Taxa de seguimento</p><h2 id="kpiTaxa">0%</h2></div>
-  <div class="card"><p>Retenção</p><h2 id="kpiRetencao">0%</h2></div>
+  <div class="card">Total<br><span id="cardTotal">0</span></div>
+  <div class="card">Primeira Consulta<br><span id="cardPrimeira">0</span></div>
+  <div class="card">Seguimento<br><span id="cardSeguimento">0</span></div>
+  <div class="card">Taxa Seguimento<br><span id="cardTaxaSeguimento">0%</span></div>
+  <div class="card">Retenção<br><span id="cardRetencao">0%</span></div>
 </div>
 
-<!-- GRÁFICOS -->
 <div class="graficos">
-  <canvas id="graficoProvincia"></canvas>
-  <canvas id="graficoServico"></canvas>
-  <canvas id="graficoSexo"></canvas>
-  <canvas id="graficoDiagnostico"></canvas>
+  <canvas id="grafProvincia"></canvas>
+  <canvas id="grafServico"></canvas>
+  <canvas id="grafSexo"></canvas>
+  <canvas id="grafDiagnostico"></canvas>
+  <canvas id="grafMensal"></canvas>
 </div>
+
+<h2>Mapa de Moçambique</h2>
+<div id="mapa"></div>
 
 <script src="js/main.js"></script>
 </body>
