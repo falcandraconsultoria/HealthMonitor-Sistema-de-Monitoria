@@ -6,31 +6,30 @@ let charts = {};
 let mapa;
 
 /* =========================================================
-   PALETA DE CORES INSTITUCIONAL (Falcandra)
+   PALETA VISUAL (SAÚDE MODERNA)
 ========================================================= */
-const CORES = [
-  "#0f172a", // azul escuro
-  "#1e3a8a",
-  "#2563eb",
-  "#60a5fa",
-  "#c9a24d"  // dourado
-];
+const CORES = {
+  verde: "#2A9D8F",
+  azul: "#2563EB",
+  dourado: "#D4AF37",
+  cinza: "#CBD5E1",
+  escuro: "#0F172A"
+};
 
 /* =========================================================
-   UPLOAD DO EXCEL
+   UPLOAD EXCEL
 ========================================================= */
-document.getElementById("excelFile").addEventListener("change", function (event) {
-  const file = event.target.files[0];
+document.getElementById("excelFile").addEventListener("change", e => {
+  const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function (e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  reader.onload = ev => {
+    const data = new Uint8Array(ev.target.result);
+    const wb = XLSX.read(data, { type: "array" });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
 
     dadosOriginais = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
     inicializarFiltros(dadosOriginais);
     aplicarFiltros();
   };
@@ -44,46 +43,36 @@ function inicializarFiltros(dados) {
   preencherSelect("filtroProvincia", dados, "Provincia");
   preencherSelect("filtroServico", dados, "Servico");
   preencherSelectAno("filtroAno", dados);
-
-  document.getElementById("filtroDistrito").innerHTML =
-    `<option value="">Todos</option>`;
+  document.getElementById("filtroDistrito").innerHTML = `<option value="">Todos</option>`;
 }
 
 ["filtroProvincia", "filtroDistrito", "filtroServico", "filtroAno"]
-  .forEach(id =>
-    document.getElementById(id).addEventListener("change", aplicarFiltros)
-  );
+  .forEach(id => document.getElementById(id).addEventListener("change", aplicarFiltros));
 
 document.getElementById("filtroProvincia").addEventListener("change", () => {
-  const provincia = document.getElementById("filtroProvincia").value;
-
-  const dadosFiltrados = provincia
-    ? dadosOriginais.filter(d => d.Provincia === provincia)
-    : dadosOriginais;
-
-  preencherSelect("filtroDistrito", dadosFiltrados, "Distrito");
-  document.getElementById("filtroDistrito").value = "";
-  aplicarFiltros();
+  const p = document.getElementById("filtroProvincia").value;
+  const base = p ? dadosOriginais.filter(d => d.Provincia === p) : dadosOriginais;
+  preencherSelect("filtroDistrito", base, "Distrito");
 });
 
 /* =========================================================
    APLICAR FILTROS
 ========================================================= */
 function aplicarFiltros() {
-  const provincia = document.getElementById("filtroProvincia").value;
-  const distrito = document.getElementById("filtroDistrito").value;
-  const servico = document.getElementById("filtroServico").value;
-  const ano = document.getElementById("filtroAno").value;
+  const p = filtroProvincia.value;
+  const d = filtroDistrito.value;
+  const s = filtroServico.value;
+  const a = filtroAno.value;
 
-  const filtrados = dadosOriginais.filter(d => {
-    const dt = normalizarData(d.Data_Consulta);
-    const anoConsulta = dt ? dt.getFullYear() : null;
+  const filtrados = dadosOriginais.filter(r => {
+    const dt = normalizarData(r.Data_Consulta);
+    const ano = dt ? dt.getFullYear() : null;
 
     return (
-      (!provincia || d.Provincia === provincia) &&
-      (!distrito || d.Distrito === distrito) &&
-      (!servico || d.Servico === servico) &&
-      (!ano || anoConsulta == ano)
+      (!p || r.Provincia === p) &&
+      (!d || r.Distrito === d) &&
+      (!s || r.Servico === s) &&
+      (!a || ano == a)
     );
   });
 
@@ -91,7 +80,7 @@ function aplicarFiltros() {
 }
 
 /* =========================================================
-   MOTOR DE INDICADORES DE SAÚDE
+   MOTOR DE INDICADORES
 ========================================================= */
 function motorIndicadoresSaude(dados) {
   const total = dados.length;
@@ -105,51 +94,26 @@ function motorIndicadoresSaude(dados) {
   ).length;
 
   const taxaSeguimento = total ? ((seguimento / total) * 100).toFixed(1) : 0;
-
   const comProxima = dados.filter(d => d.Proxima_Consulta).length;
   const taxaRetencao = total ? ((comProxima / total) * 100).toFixed(1) : 0;
 
-  const porProvincia = contar(dados, "Provincia");
-  const porDistrito = contar(dados, "Distrito");
-  const porServico = contar(dados, "Servico");
-  const porSexo = contar(dados, "Sexo");
-  const porDiagnostico = contar(dados, "Diagnostico");
-  const porMedico = contar(dados, "Nome_Medico");
   const porMes = agruparPorMes(dados);
+  const porSexo = contar(dados, "Sexo");
+  const porDiagnostico = topN(contar(dados, "Diagnostico"), 6);
+  const porMedico = topN(contar(dados, "Nome_Medico"), 8);
 
-  renderizarCards({
-    total,
-    primeira,
-    seguimento,
-    taxaSeguimento,
-    taxaRetencao
-  });
-
-  renderizarGraficos({
-    porProvincia,
-    porDistrito,
-    porServico,
-    porSexo,
-    porDiagnostico,
-    porMedico,
-    porMes
-  });
-
-  renderizarMapa(porProvincia);
+  renderizarCards({ total, primeira, seguimento, taxaSeguimento, taxaRetencao });
+  renderizarGraficos({ porMes, porSexo, porDiagnostico, porMedico });
+  renderizarMapa(contar(dados, "Provincia"));
 }
 
 /* =========================================================
-   FUNÇÕES AUXILIARES
+   UTILITÁRIOS
 ========================================================= */
-function normalizarData(valor) {
-  if (!valor) return null;
-
-  if (typeof valor === "number") {
-    const utc = Math.floor(valor - 25569);
-    return new Date(utc * 86400 * 1000);
-  }
-
-  const d = new Date(valor);
+function normalizarData(v) {
+  if (!v) return null;
+  if (typeof v === "number") return new Date((v - 25569) * 86400 * 1000);
+  const d = new Date(v);
   return isNaN(d) ? null : d;
 }
 
@@ -161,46 +125,44 @@ function contar(dados, campo) {
   }, {});
 }
 
+function topN(obj, n) {
+  return Object.fromEntries(
+    Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n)
+  );
+}
+
 function agruparPorMes(dados) {
-  const res = {};
+  const r = {};
   dados.forEach(d => {
     const dt = normalizarData(d.Data_Consulta);
     if (!dt) return;
-
-    const chave = `${dt.getFullYear()}-${String(
-      dt.getMonth() + 1
-    ).padStart(2, "0")}`;
-
-    res[chave] = (res[chave] || 0) + 1;
+    const k = `${dt.getMonth()+1}/${dt.getFullYear()}`;
+    r[k] = (r[k] || 0) + 1;
   });
-  return res;
+  return r;
 }
 
 function preencherSelect(id, dados, campo) {
-  const select = document.getElementById(id);
-  const valores = [...new Set(dados.map(d => d[campo]).filter(Boolean))];
-
-  select.innerHTML =
-    `<option value="">Todos</option>` +
-    valores.map(v => `<option value="${v}">${v}</option>`).join("");
+  const s = document.getElementById(id);
+  const vals = [...new Set(dados.map(d => d[campo]).filter(Boolean))];
+  s.innerHTML = `<option value="">Todos</option>` +
+    vals.map(v => `<option value="${v}">${v}</option>`).join("");
 }
 
 function preencherSelectAno(id, dados) {
-  const select = document.getElementById(id);
+  const s = document.getElementById(id);
   const anos = [...new Set(
     dados.map(d => {
       const dt = normalizarData(d.Data_Consulta);
       return dt ? dt.getFullYear() : null;
     }).filter(Boolean)
   )];
-
-  select.innerHTML =
-    `<option value="">Todos</option>` +
+  s.innerHTML = `<option value="">Todos</option>` +
     anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
 }
 
 /* =========================================================
-   CARDS KPI
+   CARDS
 ========================================================= */
 function renderizarCards(i) {
   cardTotal.innerText = i.total;
@@ -211,26 +173,14 @@ function renderizarCards(i) {
 }
 
 /* =========================================================
-   GRÁFICOS (Chart.js)
+   GRÁFICOS
 ========================================================= */
 function resetGraficos() {
   Object.values(charts).forEach(c => c.destroy());
   charts = {};
 }
 
-function renderizarGraficos(d) {
-  resetGraficos();
-
-  criarGrafico("grafProvincia", "bar", d.porProvincia, "Atendimentos por Província");
-  criarGrafico("grafDistrito", "bar", d.porDistrito, "Atendimentos por Distrito");
-  criarGrafico("grafServico", "doughnut", d.porServico, "Atendimentos por Serviço");
-  criarGrafico("grafSexo", "pie", d.porSexo, "Distribuição por Sexo");
-  criarGrafico("grafDiagnostico", "bar", d.porDiagnostico, "Diagnósticos");
-  criarGrafico("grafMedico", "bar", d.porMedico, "Produtividade por Médico");
-  criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais");
-}
-
-function criarGrafico(id, tipo, dados, titulo) {
+function criarGrafico(id, tipo, dados, label, cores) {
   const ctx = document.getElementById(id);
   if (!ctx) return;
 
@@ -239,83 +189,57 @@ function criarGrafico(id, tipo, dados, titulo) {
     data: {
       labels: Object.keys(dados),
       datasets: [{
-        label: titulo,
+        label,
         data: Object.values(dados),
-        backgroundColor: CORES,
-        borderColor: CORES[2],
+        backgroundColor: cores,
         borderWidth: 2,
-        pointStyle: "circle",
-        pointRadius: tipo === "line" ? 4 : 0,
-        tension: 0.35
+        tension: 0.4,
+        fill: tipo === "line"
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: {
-            usePointStyle: true
-          }
-        },
-        title: {
-          display: true,
-          text: titulo,
-          font: {
-            size: 15,
-            weight: "bold"
-          }
-        }
-      },
-      scales: tipo !== "pie" && tipo !== "doughnut" ? {
-        y: {
-          beginAtZero: true,
-          grid: { color: "#e5e7eb" }
-        },
-        x: {
-          grid: { display: false }
-        }
-      } : {}
+      plugins: { legend: { position: "bottom" } }
     }
   });
 }
 
+function renderizarGraficos(d) {
+  resetGraficos();
+
+  criarGrafico("grafMensal", "line", d.porMes, "Atendimentos Mensais",
+    "rgba(42,157,143,0.4)");
+
+  criarGrafico("grafSexo", "doughnut", d.porSexo, "Distribuição por Sexo",
+    [CORES.verde, CORES.azul]);
+
+  criarGrafico("grafDiagnostico", "bar", d.porDiagnostico,
+    "Principais Diagnósticos", CORES.verde);
+
+  criarGrafico("grafMedico", "bar", d.porMedico,
+    "Produtividade por Médico", CORES.azul);
+}
+
 /* =========================================================
-   MAPA DE MOÇAMBIQUE (Leaflet)
+   MAPA
 ========================================================= */
 function renderizarMapa(dadosProvincia) {
   if (mapa) mapa.remove();
-
   mapa = L.map("mapa").setView([-18.7, 35.5], 5);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "&copy; OpenStreetMap"
-  }).addTo(mapa);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+    .addTo(mapa);
 
   fetch("mocambique_provincias.geojson")
     .then(r => r.json())
-    .then(geo => {
-      L.geoJSON(geo, {
+    .then(g => {
+      L.geoJSON(g, {
         style: f => ({
-          fillColor: corMapa(dadosProvincia[f.properties.name] || 0),
+          fillColor: CORES.verde,
           weight: 1,
-          color: "#334155",
-          fillOpacity: 0.75
-        }),
-        onEachFeature: (f, layer) => {
-          const v = dadosProvincia[f.properties.name] || 0;
-          layer.bindPopup(
-            `<strong>${f.properties.name}</strong><br>${v} atendimentos`
-          );
-        }
+          fillOpacity: 0.6
+        })
       }).addTo(mapa);
     });
-}
-
-function corMapa(v) {
-  if (v > 200) return CORES[0];
-  if (v > 100) return CORES[1];
-  if (v > 50) return CORES[2];
-  if (v > 0) return CORES[3];
-  return "#f1f5f9";
 }
