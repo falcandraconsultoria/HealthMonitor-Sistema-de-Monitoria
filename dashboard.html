@@ -24,10 +24,23 @@
       --masc:#2ED8C3;
     }
 
+    /* ================= BODY (FUNDO FINAL) ================= */
     body{
       margin:0;
       font-family:"Segoe UI",Roboto,Arial,sans-serif;
-      background:var(--bg);
+
+      /* Fundo azul elegante com overlay escuro */
+      background:
+        linear-gradient(
+          rgba(2,6,23,0.88),
+          rgba(2,6,23,0.88)
+        ),
+        url("assets/bg-blue-texture.png");
+
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+
       color:var(--text-main);
     }
 
@@ -118,11 +131,12 @@
     }
 
     .card{
-      background:var(--card);
+      background:rgba(30,41,59,0.95);
       border-radius:14px;
       padding:18px;
       text-align:center;
       box-shadow:0 10px 25px rgba(0,0,0,.4);
+      backdrop-filter: blur(2px);
     }
 
     .card i{
@@ -153,10 +167,11 @@
     }
 
     .box{
-      background:var(--card);
+      background:rgba(30,41,59,0.95);
       border-radius:16px;
       padding:18px;
       box-shadow:0 15px 35px rgba(0,0,0,.45);
+      backdrop-filter: blur(2px);
     }
 
     .box h4{
