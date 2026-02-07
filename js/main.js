@@ -64,7 +64,7 @@ function inicializarFiltros() {
 }
 
 /* =========================================================
-   APLICAR FILTROS (CORRIGIDO)
+   APLICAR FILTROS (DISTRITO CORRIGIDO)
 ========================================================= */
 function aplicarFiltros() {
 
@@ -74,7 +74,7 @@ function aplicarFiltros() {
     base = base.filter(d => d.Provincia === filtroProvincia.value);
   }
 
-  // CORRECÇÃO DO FILTRO DISTRITO
+  // recalcula distritos válidos
   preencherSelect(filtroDistrito, "Distrito", base);
 
   const filtrados = base.filter(d => {
@@ -131,35 +131,17 @@ function atualizarIndicadores(d) {
 function renderizarVisualizacoes(d) {
   destruirGraficos();
 
-  // Gráfico de área – Atendimentos Mensais
-  criarGrafico("grafMensal", "line", d.mensal, {
-    area: true
-  });
-
-  criarGrafico("grafDiagnostico", "bar", d.diagnostico, {
-    cor: "#8E24AA",
-    horizontal: true
-  });
-
-  criarGrafico("grafMedico", "bar", d.medico, {
-    cor: "#38BDF8",
-    horizontal: true
-  });
-
-  criarGrafico("grafServico", "bar", d.servico, {
-    cor: "#2DD4BF",
-    horizontal: true
-  });
-
-  criarGrafico("grafDistrito", "bar", d.distrito, {
-    cor: "#38BDF8"
-  });
+  criarGrafico("grafMensal", "line", d.mensal, { area: true });
+  criarGrafico("grafDiagnostico", "bar", d.diagnostico, { cor:"#8E24AA", horizontal:true });
+  criarGrafico("grafMedico", "bar", d.medico, { cor:"#38BDF8", horizontal:true });
+  criarGrafico("grafServico", "bar", d.servico, { cor:"#2DD4BF", horizontal:true });
+  criarGrafico("grafDistrito", "bar", d.distrito, { cor:"#38BDF8" });
 
   renderizarPictogramaSexo(d.sexo);
 }
 
 /* =========================================================
-   PICTOGRAMA POR SEXO (STACKED)
+   PICTOGRAMA POR SEXO (MÁX. 50 ÍCONES)
 ========================================================= */
 function renderizarPictogramaSexo(dados) {
   pictogramaSexo.innerHTML = "";
@@ -167,44 +149,50 @@ function renderizarPictogramaSexo(dados) {
   const feminino = dados["Feminino"] || 0;
   const masculino = dados["Masculino"] || 0;
 
-  const escala = definirEscala(Math.max(feminino, masculino));
+  const maxValor = Math.max(feminino, masculino);
 
-  criarColunaSexo("Feminino", feminino, "#8E24AA", escala);
+  const iconesF = calcularIcones(feminino, maxValor);
+  const iconesM = calcularIcones(masculino, maxValor);
+
+  criarBlocoSexo("Feminino", iconesF, "#8E24AA");
   criarValorCentralSexo(feminino, masculino);
-  criarColunaSexo("Masculino", masculino, "#2ED8C3", escala);
+  criarBlocoSexo("Masculino", iconesM, "#2ED8C3");
 }
 
-function definirEscala(total) {
-  if (total < 100) return 2;
-  if (total < 1000) return 20;
-  if (total < 10000) return 200;
-  return 2000;
+function calcularIcones(valor, maxValor) {
+  if (maxValor === 0) return 0;
+  return Math.round((valor / maxValor) * 50);
 }
 
-function criarColunaSexo(label, total, cor, escala) {
-  const col = document.createElement("div");
-  col.style.display = "flex";
-  col.style.flexDirection = "column";
-  col.style.alignItems = "center";
+function criarBlocoSexo(label, totalIcones, cor) {
+  const wrapper = document.createElement("div");
+  wrapper.style.display = "flex";
+  wrapper.style.flexDirection = "column";
+  wrapper.style.alignItems = "center";
+  wrapper.style.minWidth = "160px";
 
-  const qtd = Math.ceil(total / escala);
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(5, 1fr)";
+  grid.style.gap = "6px";
 
-  for (let i = 0; i < qtd; i++) {
+  for (let i = 0; i < totalIcones; i++) {
     const icon = document.createElement("i");
     icon.className = "fa-solid fa-person";
     icon.style.color = cor;
-    icon.style.fontSize = "18px";
-    icon.style.margin = "2px 0";
-    col.appendChild(icon);
+    icon.style.fontSize = "16px";
+    grid.appendChild(icon);
   }
 
   const nome = document.createElement("div");
   nome.textContent = label;
-  nome.style.marginTop = "8px";
+  nome.style.marginTop = "10px";
   nome.style.fontSize = "13px";
+  nome.style.color = "#CBD5E1";
 
-  col.appendChild(nome);
-  pictogramaSexo.appendChild(col);
+  wrapper.appendChild(grid);
+  wrapper.appendChild(nome);
+  pictogramaSexo.appendChild(wrapper);
 }
 
 function criarValorCentralSexo(feminino, masculino) {
@@ -230,7 +218,6 @@ function criarValorCentralSexo(feminino, masculino) {
   mid.appendChild(fem);
   mid.appendChild(sep);
   mid.appendChild(masc);
-
   pictogramaSexo.appendChild(mid);
 }
 
@@ -278,18 +265,16 @@ function destruirGraficos() {
 }
 
 /* =========================================================
-   DOWNLOAD PDF (PÁGINA TODA)
+   DOWNLOAD PDF
 ========================================================= */
 btnDownload.addEventListener("click", () => {
-  const area = document.querySelector(".container");
-
   html2pdf().set({
     margin: 0.5,
     filename: "Dashboard_Monitoria_Saude.pdf",
     image: { type: "jpeg", quality: 0.98 },
     html2canvas: { scale: 2, backgroundColor: "#0F172A" },
     jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
-  }).from(area).save();
+  }).from(document.querySelector(".container")).save();
 });
 
 /* =========================================================
