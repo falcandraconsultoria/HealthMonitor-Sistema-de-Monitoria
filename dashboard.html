@@ -14,8 +14,6 @@
 
   <style>
     :root{
-      --bg:#0F172A;
-      --card:#1E293B;
       --text-main:#F1F5F9;
       --text-soft:#CBD5E1;
 
@@ -24,23 +22,15 @@
       --masc:#2ED8C3;
     }
 
-    /* ================= BODY (FUNDO FINAL) ================= */
     body{
       margin:0;
       font-family:"Segoe UI",Roboto,Arial,sans-serif;
 
-      /* Fundo azul elegante com overlay escuro */
       background:
-        linear-gradient(
-          rgba(2,6,23,0.88),
-          rgba(2,6,23,0.88)
-        ),
-        url("assets/bg-blue-texture.png");
+        linear-gradient(rgba(15,23,42,0.85), rgba(15,23,42,0.85)),
+        url("assets/bg-blue-dashboard.png") no-repeat center center fixed;
 
       background-size: cover;
-      background-position: center;
-      background-attachment: fixed;
-
       color:var(--text-main);
     }
 
@@ -53,8 +43,15 @@
       display:flex;
       align-items:center;
       gap:14px;
-      background:linear-gradient(90deg,#0F172A,#111827);
-      box-shadow:0 8px 25px rgba(0,0,0,.5);
+
+      background: linear-gradient(
+        90deg,
+        #020617,
+        #0F172A,
+        #1E3A8A
+      );
+
+      box-shadow:0 10px 30px rgba(0,0,0,.6);
     }
 
     header img{ height:42px }
@@ -131,12 +128,12 @@
     }
 
     .card{
-      background:rgba(30,41,59,0.95);
-      border-radius:14px;
+      background: rgba(30,41,59,0.88);
+      backdrop-filter: blur(6px);
+      border-radius:16px;
       padding:18px;
       text-align:center;
-      box-shadow:0 10px 25px rgba(0,0,0,.4);
-      backdrop-filter: blur(2px);
+      box-shadow:0 15px 35px rgba(0,0,0,.45);
     }
 
     .card i{
@@ -167,11 +164,11 @@
     }
 
     .box{
-      background:rgba(30,41,59,0.95);
+      background: rgba(30,41,59,0.88);
+      backdrop-filter: blur(6px);
       border-radius:16px;
       padding:18px;
       box-shadow:0 15px 35px rgba(0,0,0,.45);
-      backdrop-filter: blur(2px);
     }
 
     .box h4{
@@ -215,7 +212,7 @@
 
 <div class="container">
 
-  <!-- ================= FILTROS ================= -->
+  <!-- FILTROS -->
   <div class="filtros">
     <div class="filtro-box">
       <label>Fonte de Dados</label>
@@ -227,32 +224,17 @@
       </div>
     </div>
 
-    <div class="filtro-box">
-      <label>Província</label>
-      <select id="filtroProvincia"></select>
-    </div>
-
-    <div class="filtro-box">
-      <label>Distrito</label>
-      <select id="filtroDistrito"></select>
-    </div>
-
-    <div class="filtro-box">
-      <label>Serviço</label>
-      <select id="filtroServico"></select>
-    </div>
-
-    <div class="filtro-box">
-      <label>Ano</label>
-      <select id="filtroAno"></select>
-    </div>
+    <div class="filtro-box"><label>Província</label><select id="filtroProvincia"></select></div>
+    <div class="filtro-box"><label>Distrito</label><select id="filtroDistrito"></select></div>
+    <div class="filtro-box"><label>Serviço</label><select id="filtroServico"></select></div>
+    <div class="filtro-box"><label>Ano</label><select id="filtroAno"></select></div>
 
     <button class="download-btn" id="btnDownload" title="Baixar dashboard em PDF">
       <i class="fa-solid fa-download"></i>
     </button>
   </div>
 
-  <!-- ================= CARDS ================= -->
+  <!-- CARDS -->
   <div class="cards">
     <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span id="cardTotal">0</span></div>
     <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span id="cardPrimeira">0</span></div>
@@ -261,7 +243,7 @@
     <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span id="cardRetencao">0%</span></div>
   </div>
 
-  <!-- ================= GRÁFICOS ================= -->
+  <!-- GRÁFICOS -->
   <div class="box">
     <h4>Atendimentos Mensais</h4>
     <canvas id="grafMensal"></canvas>
@@ -280,15 +262,8 @@
   </div>
 
   <div class="grid">
-    <div class="box">
-      <h4>Produtividade por Médico</h4>
-      <canvas id="grafMedico"></canvas>
-    </div>
-
-    <div class="box">
-      <h4>Produtividade por Serviço</h4>
-      <canvas id="grafServico"></canvas>
-    </div>
+    <div class="box"><h4>Produtividade por Médico</h4><canvas id="grafMedico"></canvas></div>
+    <div class="box"><h4>Produtividade por Serviço</h4><canvas id="grafServico"></canvas></div>
   </div>
 
   <div class="box">
