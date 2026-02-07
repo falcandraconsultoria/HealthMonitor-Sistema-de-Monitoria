@@ -22,21 +22,7 @@ const cardSeguimento = document.getElementById("cardSeguimento");
 const cardTaxaSeguimento = document.getElementById("cardTaxaSeguimento");
 const cardRetencao = document.getElementById("cardRetencao");
 
-const btnDownload = document.getElementById("btnDownload");
-
-/* =========================================================
-   CORES (IDENTIDADE FINAL)
-========================================================= */
-const CORES = {
-  feminino: "#8E24AA",
-  masculino: "#2ED8C3",
-  areaMensal: "rgba(46,216,195,0.35)",
-  linhaMensal: "#2ED8C3",
-  diagnostico: "#7C3AED",
-  medico: "#38BDF8",
-  distrito: "#2DD4BF",
-  servico: "#10B981"
-};
+const pictogramaSexo = document.getElementById("pictogramaSexo");
 
 /* =========================================================
    UPLOAD DO EXCEL
@@ -66,43 +52,38 @@ excelFile.addEventListener("change", e => {
 /* =========================================================
    FILTROS
 ========================================================= */
-[filtroProvincia,filtroDistrito,filtroServico,filtroAno]
+[filtroProvincia, filtroDistrito, filtroServico, filtroAno]
   .forEach(el => el.addEventListener("change", aplicarFiltros));
 
 function inicializarFiltros() {
-  preencherSelect(filtroProvincia,"Provincia");
-  preencherSelect(filtroServico,"Servico");
+  preencherSelect(filtroProvincia, "Provincia");
+  preencherSelect(filtroServico, "Servico");
   preencherSelectAno();
   filtroDistrito.innerHTML = `<option value="">Todos</option>`;
 }
 
-/* 🔧 CORRECÇÃO DO FILTRO DISTRITO */
-filtroProvincia.addEventListener("change", () => {
-  const prov = filtroProvincia.value?.trim();
-
-  const base = prov
-    ? dadosOriginais.filter(d =>
-        String(d.Provincia).trim() === prov
-      )
-    : dadosOriginais;
-
-  preencherSelect(filtroDistrito,"Distrito",base);
-  filtroDistrito.value = "";
-});
-
 /* =========================================================
-   APLICAR FILTROS
+   APLICAR FILTROS (CORRIGIDO)
 ========================================================= */
 function aplicarFiltros() {
-  const filtrados = dadosOriginais.filter(d => {
+
+  let base = dadosOriginais;
+
+  if (filtroProvincia.value) {
+    base = base.filter(d => d.Provincia === filtroProvincia.value);
+  }
+
+  // 🔧 CORRECÇÃO DO DISTRITO
+  preencherSelect(filtroDistrito, "Distrito", base);
+
+  const filtrados = base.filter(d => {
     const dt = normalizarData(d.Data_Consulta);
     const ano = dt ? dt.getFullYear() : null;
 
     return (
-      (!filtroProvincia.value || String(d.Provincia).trim() === filtroProvincia.value) &&
-      (!filtroDistrito.value  || String(d.Distrito).trim() === filtroDistrito.value) &&
-      (!filtroServico.value   || String(d.Servico).trim() === filtroServico.value) &&
-      (!filtroAno.value       || ano == filtroAno.value)
+      (!filtroDistrito.value || d.Distrito === filtroDistrito.value) &&
+      (!filtroServico.value  || d.Servico === filtroServico.value) &&
+      (!filtroAno.value      || ano == filtroAno.value)
     );
   });
 
@@ -144,43 +125,102 @@ function atualizarIndicadores(d) {
 }
 
 /* =========================================================
-   GRÁFICOS (SEM SEXO – PICTOGRAMA SERÁ HTML)
+   GRÁFICOS + PICTOGRAMA
 ========================================================= */
 function renderizarGraficos(d) {
   destruirGraficos();
 
   criarGrafico("grafMensal","line",d.mensal,{
-    preenchido:true,
-    corArea:CORES.areaMensal,
-    corLinha:CORES.linhaMensal
+    cor:"#2ED8C3",
+    preenchido:true
   });
 
   criarGrafico("grafDiagnostico","bar",d.diagnostico,{
-    corUnica:CORES.diagnostico,
+    corUnica:"#8E24AA",
     horizontal:true
   });
 
   criarGrafico("grafMedico","bar",d.medico,{
-    corUnica:CORES.medico,
+    corUnica:"#38BDF8",
     horizontal:true
   });
 
   criarGrafico("grafServico","bar",d.servico,{
-    corUnica:CORES.servico,
+    corUnica:"#2DD4BF",
     horizontal:true
   });
 
   criarGrafico("grafDistrito","bar",d.distrito,{
-    corUnica:CORES.distrito
+    corUnica:"#38BDF8"
   });
+
+  renderizarPictogramaSexo(d.sexo);
 }
 
 /* =========================================================
-   FUNÇÃO BASE GRÁFICOS
+   PICTOGRAMA POR SEXO (STACKED)
 ========================================================= */
-function criarGrafico(id,tipo,dados,cfg={}) {
+function renderizarPictogramaSexo(dados){
+  pictogramaSexo.innerHTML = "";
+
+  const feminino = dados["Feminino"] || 0;
+  const masculino = dados["Masculino"] || 0;
+
+  const escala = definirEscala(Math.max(feminino, masculino));
+
+  criarColuna("Feminino", feminino, "#8E24AA", escala);
+  criarValorCentral(feminino + masculino);
+  criarColuna("Masculino", masculino, "#2ED8C3", escala);
+}
+
+function definirEscala(total){
+  if (total < 100) return 2;
+  if (total < 1000) return 20;
+  if (total < 10000) return 200;
+  return 2000;
+}
+
+function criarColuna(label, total, cor, escala){
+  const col = document.createElement("div");
+  col.style.display = "flex";
+  col.style.flexDirection = "column";
+  col.style.alignItems = "center";
+
+  const qtd = Math.ceil(total / escala);
+
+  for(let i=0;i<qtd;i++){
+    const icon = document.createElement("i");
+    icon.className = "fa-solid fa-person";
+    icon.style.color = cor;
+    icon.style.fontSize = "18px";
+    icon.style.margin = "2px 0";
+    col.appendChild(icon);
+  }
+
+  const nome = document.createElement("div");
+  nome.textContent = label;
+  nome.style.marginTop = "8px";
+  nome.style.fontSize = "13px";
+
+  col.appendChild(nome);
+  pictogramaSexo.appendChild(col);
+}
+
+function criarValorCentral(valor){
+  const mid = document.createElement("div");
+  mid.textContent = valor;
+  mid.style.fontSize = "28px";
+  mid.style.fontWeight = "800";
+  mid.style.margin = "0 20px";
+  pictogramaSexo.appendChild(mid);
+}
+
+/* =========================================================
+   GRÁFICOS BASE
+========================================================= */
+function criarGrafico(id,tipo,dados,cfg={}){
   const ctx = document.getElementById(id);
-  if (!ctx || !Object.keys(dados).length) return;
+  if(!ctx || !Object.keys(dados).length) return;
 
   charts[id] = new Chart(ctx,{
     type:tipo,
@@ -188,23 +228,21 @@ function criarGrafico(id,tipo,dados,cfg={}) {
       labels:Object.keys(dados),
       datasets:[{
         data:Object.values(dados),
-        backgroundColor:
-          tipo==="line" ? cfg.corArea : cfg.corUnica,
-        borderColor:cfg.corLinha||cfg.corUnica,
-        fill:cfg.preenchido||false,
-        tension:.4,
-        borderRadius:tipo==="bar"?8:0,
-        pointRadius:tipo==="line"?3:0
+        backgroundColor: tipo==="line"
+          ? "rgba(46,216,195,0.35)"
+          : cfg.corUnica,
+        borderColor: cfg.corUnica,
+        fill: cfg.preenchido || false,
+        tension:0.4,
+        borderRadius:8,
+        pointRadius:4
       }]
     },
     options:{
       maintainAspectRatio:false,
-      indexAxis:cfg.horizontal?"y":"x",
+      indexAxis: cfg.horizontal ? "y" : "x",
       plugins:{ legend:{ display:false }},
-      scales:{
-        x:{ grid:{ display:false }},
-        y:{ beginAtZero:true, grid:{ display:false }}
-      }
+      scales:{ x:{grid:{display:false}}, y:{grid:{display:false}} }
     }
   });
 }
@@ -215,34 +253,12 @@ function destruirGraficos(){
 }
 
 /* =========================================================
-   DOWNLOAD PNG + MARCA
-========================================================= */
-btnDownload?.addEventListener("click", () => {
-  const canvas = document.querySelector("canvas");
-  if(!canvas) return alert("Nenhum gráfico disponível.");
-
-  const ctx = canvas.getContext("2d");
-
-  ctx.save();
-  ctx.font="12px Arial";
-  ctx.fillStyle="rgba(255,255,255,.6)";
-  ctx.fillText("@falcandradataconsulting",10,canvas.height-10);
-  ctx.restore();
-
-  const link=document.createElement("a");
-  link.download="grafico-healthmonitor.png";
-  link.href=canvas.toDataURL("image/png");
-  link.click();
-});
-
-/* =========================================================
    AUXILIARES
 ========================================================= */
 function contar(d,c){
   return d.reduce((a,r)=>{
-    const v=String(r[c]||"").trim();
-    if(!v||v.toLowerCase()==="undefined") return a;
-    a[v]=(a[v]||0)+1;
+    if(!r[c]) return a;
+    a[r[c]]=(a[r[c]]||0)+1;
     return a;
   },{});
 }
@@ -259,7 +275,7 @@ function agruparMes(d){
 }
 
 function ordenarMeses(o){
-  return Object.fromEntries(Object.entries(o).sort((a,b)=>a[0].localeCompare(b[0])));
+  return Object.fromEntries(Object.entries(o).sort());
 }
 
 function normalizarData(v){
@@ -270,9 +286,9 @@ function normalizarData(v){
   return isNaN(d)?null:d;
 }
 
-function preencherSelect(sel,campo,base=dadosOriginais){
-  const vals=[...new Set(base.map(x=>String(x[campo]).trim()).filter(Boolean))];
-  sel.innerHTML=`<option value="">Todos</option>`+
+function preencherSelect(select,campo,base=dadosOriginais){
+  const vals=[...new Set(base.map(x=>x[campo]).filter(Boolean))];
+  select.innerHTML=`<option value="">Todos</option>`+
     vals.map(v=>`<option value="${v}">${v}</option>`).join("");
 }
 
