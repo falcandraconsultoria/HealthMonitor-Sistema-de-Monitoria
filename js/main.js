@@ -64,17 +64,15 @@ function inicializarFiltros() {
 }
 
 /* =========================================================
-   APLICAR FILTROS (DISTRITO CORRIGIDO)
+   APLICAR FILTROS
 ========================================================= */
 function aplicarFiltros() {
-
   let base = dadosOriginais;
 
   if (filtroProvincia.value) {
     base = base.filter(d => d.Provincia === filtroProvincia.value);
   }
 
-  // recalcula distritos válidos
   preencherSelect(filtroDistrito, "Distrito", base);
 
   const filtrados = base.filter(d => {
@@ -151,12 +149,9 @@ function renderizarPictogramaSexo(dados) {
 
   const maxValor = Math.max(feminino, masculino);
 
-  const iconesF = calcularIcones(feminino, maxValor);
-  const iconesM = calcularIcones(masculino, maxValor);
-
-  criarBlocoSexo("Feminino", iconesF, "#8E24AA");
+  criarBlocoSexo("Feminino", calcularIcones(feminino, maxValor), "#8E24AA");
   criarValorCentralSexo(feminino, masculino);
-  criarBlocoSexo("Masculino", iconesM, "#2ED8C3");
+  criarBlocoSexo("Masculino", calcularIcones(masculino, maxValor), "#2ED8C3");
 }
 
 function calcularIcones(valor, maxValor) {
@@ -203,26 +198,17 @@ function criarValorCentralSexo(feminino, masculino) {
   mid.style.fontSize = "28px";
   mid.style.fontWeight = "800";
 
-  const fem = document.createElement("span");
-  fem.textContent = feminino;
-  fem.style.color = "#8E24AA";
+  mid.innerHTML = `
+    <span style="color:#8E24AA">${feminino}</span>
+    <span style="color:#CBD5E1">–</span>
+    <span style="color:#2ED8C3">${masculino}</span>
+  `;
 
-  const sep = document.createElement("span");
-  sep.textContent = "–";
-  sep.style.color = "#CBD5E1";
-
-  const masc = document.createElement("span");
-  masc.textContent = masculino;
-  masc.style.color = "#2ED8C3";
-
-  mid.appendChild(fem);
-  mid.appendChild(sep);
-  mid.appendChild(masc);
   pictogramaSexo.appendChild(mid);
 }
 
 /* =========================================================
-   GRÁFICOS (BASE)
+   GRÁFICOS
 ========================================================= */
 function criarGrafico(id, tipo, dados, cfg = {}) {
   const ctx = document.getElementById(id);
@@ -234,26 +220,21 @@ function criarGrafico(id, tipo, dados, cfg = {}) {
       labels: Object.keys(dados),
       datasets: [{
         data: Object.values(dados),
-        backgroundColor: tipo === "line"
-          ? "rgba(46,216,195,0.35)"
-          : cfg.cor,
-        borderColor: tipo === "line"
-          ? "#22C1AE"
-          : cfg.cor,
+        backgroundColor: tipo === "line" ? "rgba(46,216,195,0.35)" : cfg.cor,
+        borderColor: tipo === "line" ? "#22C1AE" : cfg.cor,
         fill: cfg.area || false,
         tension: 0.4,
         pointRadius: tipo === "line" ? 3 : 0,
-        pointBackgroundColor: "#22C1AE",
         borderRadius: 8
       }]
     },
     options: {
-      maintainAspectRatio: false,
+      maintainAspectRatio:false,
       indexAxis: cfg.horizontal ? "y" : "x",
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false } },
-        y: { grid: { display: false }, beginAtZero: true }
+      plugins:{ legend:{ display:false }},
+      scales:{
+        x:{ grid:{ display:false }},
+        y:{ grid:{ display:false }, beginAtZero:true }
       }
     }
   });
@@ -265,17 +246,19 @@ function destruirGraficos() {
 }
 
 /* =========================================================
-   DOWNLOAD PDF
+   DOWNLOAD PDF (SEGURO)
 ========================================================= */
-btnDownload.addEventListener("click", () => {
-  html2pdf().set({
-    margin: 0.5,
-    filename: "Dashboard_Monitoria_Saude.pdf",
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, backgroundColor: "#0F172A" },
-    jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
-  }).from(document.querySelector(".container")).save();
-});
+if (btnDownload) {
+  btnDownload.addEventListener("click", () => {
+    html2pdf().set({
+      margin: 0.5,
+      filename: "Dashboard_Monitoria_Saude.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, backgroundColor: "#0F172A" },
+      jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
+    }).from(document.querySelector(".container")).save();
+  });
+}
 
 /* =========================================================
    AUXILIARES
@@ -293,7 +276,7 @@ function agruparMes(d) {
   d.forEach(x => {
     const dt = normalizarData(x.Data_Consulta);
     if (!dt) return;
-    const k = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    const k = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
     r[k] = (r[k] || 0) + 1;
   });
   return r;
