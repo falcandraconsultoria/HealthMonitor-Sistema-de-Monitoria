@@ -7,6 +7,7 @@
   <!-- Bibliotecas -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <!-- Ícones -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
@@ -20,6 +21,7 @@
 
       --icon:#FB8C00;
       --number:#8E24AA;
+      --masc:#2ED8C3;
     }
 
     body{
@@ -29,14 +31,15 @@
       color:var(--text-main);
     }
 
+    /* ================= HEADER ================= */
     header{
       position:sticky;
       top:0;
       z-index:100;
       padding:14px 28px;
       display:flex;
-      gap:14px;
       align-items:center;
+      gap:14px;
       background:linear-gradient(90deg,#0F172A,#111827);
       box-shadow:0 8px 25px rgba(0,0,0,.5);
     }
@@ -59,7 +62,7 @@
     /* ================= FILTROS ================= */
     .filtros{
       display:grid;
-      grid-template-columns:1.5fr repeat(4,1fr) auto;
+      grid-template-columns:1.6fr repeat(4,1fr) auto;
       gap:14px;
       margin-bottom:28px;
       align-items:end;
@@ -92,10 +95,10 @@
     }
 
     .download-btn{
-      height:44px;
-      width:54px;
+      height:46px;
+      width:56px;
       border:none;
-      border-radius:10px;
+      border-radius:12px;
       background:var(--icon);
       color:#fff;
       font-size:18px;
@@ -103,6 +106,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      box-shadow:0 8px 20px rgba(0,0,0,.4);
     }
 
     /* ================= CARDS ================= */
@@ -115,7 +119,7 @@
 
     .card{
       background:var(--card);
-      border-radius:12px;
+      border-radius:14px;
       padding:18px;
       text-align:center;
       box-shadow:0 10px 25px rgba(0,0,0,.4);
@@ -150,13 +154,13 @@
 
     .box{
       background:var(--card);
-      border-radius:14px;
+      border-radius:16px;
       padding:18px;
       box-shadow:0 15px 35px rgba(0,0,0,.45);
     }
 
     .box h4{
-      margin:0 0 12px;
+      margin:0 0 14px;
       font-size:14px;
       font-weight:600;
     }
@@ -169,9 +173,10 @@
     /* ================= PICTOGRAMA ================= */
     #pictogramaSexo{
       display:flex;
-      justify-content:space-around;
+      justify-content:space-between;
       align-items:flex-end;
-      height:300px;
+      min-height:280px;
+      padding:0 30px;
     }
 
     footer{
@@ -195,7 +200,7 @@
 
 <div class="container">
 
-  <!-- FILTROS -->
+  <!-- ================= FILTROS ================= -->
   <div class="filtros">
     <div class="filtro-box">
       <label>Fonte de Dados</label>
@@ -227,12 +232,12 @@
       <select id="filtroAno"></select>
     </div>
 
-    <button class="download-btn" id="btnDownload" title="Baixar gráficos em PNG">
+    <button class="download-btn" id="btnDownload" title="Baixar dashboard em PDF">
       <i class="fa-solid fa-download"></i>
     </button>
   </div>
 
-  <!-- CARDS -->
+  <!-- ================= CARDS ================= -->
   <div class="cards">
     <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span id="cardTotal">0</span></div>
     <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span id="cardPrimeira">0</span></div>
@@ -241,7 +246,7 @@
     <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span id="cardRetencao">0%</span></div>
   </div>
 
-  <!-- GRÁFICOS -->
+  <!-- ================= GRÁFICOS ================= -->
   <div class="box">
     <h4>Atendimentos Mensais</h4>
     <canvas id="grafMensal"></canvas>
@@ -252,6 +257,7 @@
       <h4>Distribuição por Sexo</h4>
       <div id="pictogramaSexo"></div>
     </div>
+
     <div class="box">
       <h4>Diagnósticos mais Frequentes</h4>
       <canvas id="grafDiagnostico"></canvas>
@@ -263,6 +269,7 @@
       <h4>Produtividade por Médico</h4>
       <canvas id="grafMedico"></canvas>
     </div>
+
     <div class="box">
       <h4>Produtividade por Serviço</h4>
       <canvas id="grafServico"></canvas>
