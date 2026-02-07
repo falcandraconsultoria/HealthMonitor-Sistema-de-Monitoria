@@ -1,169 +1,281 @@
-let dados = [];
-let charts = {};
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard de Monitoria em Saúde</title>
 
-// ================= LEITURA DO EXCEL =================
-document.getElementById("excelFile").addEventListener("change", function (e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  <!-- Bibliotecas -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-  const reader = new FileReader();
-  reader.onload = function (evt) {
-    const data = new Uint8Array(evt.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    dados = XLSX.utils.sheet_to_json(sheet);
+  <!-- Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 
-    inicializarFiltros();
-    atualizarDashboard();
-  };
-  reader.readAsArrayBuffer(file);
-});
+  <style>
+    :root{
+      --text-main:#F1F5F9;
+      --text-soft:#CBD5E1;
 
-// ================= FILTROS =================
-function inicializarFiltros() {
-  preencherSelect("filtroProvincia", "Província");
-  preencherSelect("filtroDistrito", "Distrito");
-  preencherSelect("filtroServico", "Serviço");
-  preencherSelect("filtroAno", "Ano");
-}
-
-function preencherSelect(id, campo) {
-  const select = document.getElementById(id);
-  select.innerHTML = "<option value=''>Todos</option>";
-
-  const valores = [...new Set(dados.map(d => d[campo]).filter(Boolean))].sort();
-  valores.forEach(v => {
-    const opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = v;
-    select.appendChild(opt);
-  });
-
-  select.onchange = atualizarDashboard;
-}
-
-function dadosFiltrados() {
-  return dados.filter(d =>
-    (!filtroProvincia.value || d["Província"] === filtroProvincia.value) &&
-    (!filtroDistrito.value || d["Distrito"] === filtroDistrito.value) &&
-    (!filtroServico.value || d["Serviço"] === filtroServico.value) &&
-    (!filtroAno.value || String(d["Ano"]) === filtroAno.value)
-  );
-}
-
-// ================= DASHBOARD =================
-function atualizarDashboard() {
-  const df = dadosFiltrados();
-
-  atualizarCards(df);
-  graficoMensal(df);
-  graficoDiagnostico(df);
-  graficoProdutividade(df, "Médico", "grafMedico");
-  graficoProdutividade(df, "Serviço", "grafServico");
-  graficoProdutividade(df, "Distrito", "grafDistrito");
-  pictogramaSexo(df);
-}
-
-// ================= CARDS =================
-function atualizarCards(df) {
-  const total = df.length;
-  const primeira = df.filter(d => d["Tipo de Consulta"] === "Primeira").length;
-  const seguimento = df.filter(d => d["Tipo de Consulta"] === "Seguimento").length;
-
-  document.getElementById("cardTotal").textContent = total;
-  document.getElementById("cardPrimeira").textContent = primeira;
-  document.getElementById("cardSeguimento").textContent = seguimento;
-  document.getElementById("cardTaxaSeguimento").textContent =
-    total ? Math.round((seguimento / total) * 100) + "%" : "0%";
-  document.getElementById("cardRetencao").textContent =
-    total ? Math.round((primeira / total) * 100) + "%" : "0%";
-}
-
-// ================= GRÁFICOS =================
-function criarChart(id, config) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), config);
-}
-
-function graficoMensal(df) {
-  const mapa = {};
-  df.forEach(d => {
-    const mes = d["Mês"] || "N/D";
-    mapa[mes] = (mapa[mes] || 0) + 1;
-  });
-
-  criarChart("grafMensal", {
-    type: "line",
-    data: {
-      labels: Object.keys(mapa),
-      datasets: [{
-        label: "Atendimentos",
-        data: Object.values(mapa),
-        borderWidth: 3,
-        tension: 0.4
-      }]
+      --icon:#FB8C00;
+      --number:#8E24AA;
+      --masc:#2ED8C3;
     }
-  });
-}
 
-function graficoDiagnostico(df) {
-  const mapa = {};
-  df.forEach(d => {
-    const diag = d["Diagnóstico"] || "Outros";
-    mapa[diag] = (mapa[diag] || 0) + 1;
-  });
+    body{
+      margin:0;
+      font-family:"Segoe UI",Roboto,Arial,sans-serif;
 
-  criarChart("grafDiagnostico", {
-    type: "bar",
-    data: {
-      labels: Object.keys(mapa),
-      datasets: [{
-        label: "Casos",
-        data: Object.values(mapa)
-      }]
+      /* Fundo azul com imagem suave */
+      background:
+        linear-gradient(
+          rgba(56,189,248,0.35),
+          rgba(2,6,23,0.95)
+        ),
+        url("assets/bg-ocean-night.png") no-repeat center center fixed;
+
+      background-size: cover;
+      color:var(--text-main);
     }
-  });
-}
 
-function graficoProdutividade(df, campo, canvas) {
-  const mapa = {};
-  df.forEach(d => {
-    const v = d[campo] || "N/D";
-    mapa[v] = (mapa[v] || 0) + 1;
-  });
+    /* ================= HEADER ================= */
+    header{
+      position:sticky;
+      top:0;
+      z-index:100;
+      padding:14px 28px;
+      display:flex;
+      align-items:center;
+      gap:14px;
 
-  criarChart(canvas, {
-    type: "bar",
-    data: {
-      labels: Object.keys(mapa),
-      datasets: [{
-        label: "Atendimentos",
-        data: Object.values(mapa)
-      }]
-    },
-    options: {
-      indexAxis: "y"
+      background:#020617;
+
+      box-shadow:0 10px 30px rgba(0,0,0,.6);
     }
-  });
-}
 
-// ================= PICTOGRAMA SEXO =================
-function pictogramaSexo(df) {
-  const cont = { Masculino: 0, Feminino: 0 };
+    header img{ height:42px }
 
-  df.forEach(d => {
-    if (d["Sexo"] === "Masculino") cont.Masculino++;
-    if (d["Sexo"] === "Feminino") cont.Feminino++;
-  });
+    header h1{
+      margin:0;
+      font-size:20px;
+      font-weight:600;
+    }
 
-  const div = document.getElementById("pictogramaSexo");
-  div.innerHTML = `
-    <div><i class="fa-solid fa-person" style="font-size:80px;color:#2ED8C3"></i><br>${cont.Masculino}</div>
-    <div><i class="fa-solid fa-person-dress" style="font-size:80px;color:#FB8C00"></i><br>${cont.Feminino}</div>
-  `;
-}
+    header span{
+      font-size:12px;
+      color:var(--text-soft);
+    }
 
-// ================= DOWNLOAD PDF =================
-document.getElementById("btnDownload").addEventListener("click", () => {
-  html2pdf().from(document.body).save("dashboard-saude.pdf");
-});
+    .container{ padding:28px }
+
+    /* ================= FILTROS ================= */
+    .filtros{
+      display:grid;
+      grid-template-columns:1.6fr repeat(4,1fr) auto;
+      gap:14px;
+      margin-bottom:28px;
+      align-items:end;
+    }
+
+    .filtro-box{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    label{
+      font-size:12px;
+      color:var(--text-soft);
+    }
+
+    input, select{
+      background:#020617;
+      color:#fff;
+      border:1px solid #334155;
+      border-radius:10px;
+      padding:10px 12px;
+      font-weight:600;
+    }
+
+    .fonte-descricao{
+      font-size:11px;
+      color:var(--text-soft);
+      line-height:1.4;
+    }
+
+    .download-btn{
+      height:46px;
+      width:56px;
+      border:none;
+      border-radius:12px;
+      background:var(--icon);
+      color:#fff;
+      font-size:18px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 8px 20px rgba(0,0,0,.4);
+    }
+
+    /* ================= CARDS ================= */
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:16px;
+      margin-bottom:28px;
+    }
+
+    .card{
+      background: rgba(30,41,59,0.88);
+      backdrop-filter: blur(6px);
+      border-radius:16px;
+      padding:18px;
+      text-align:center;
+      box-shadow:0 15px 35px rgba(0,0,0,.45);
+    }
+
+    .card i{
+      font-size:20px;
+      color:var(--icon);
+      margin-bottom:6px;
+    }
+
+    .card h3{
+      font-size:13px;
+      margin:6px 0;
+      color:var(--text-soft);
+      font-weight:500;
+    }
+
+    .card span{
+      font-size:30px;
+      font-weight:800;
+      color:var(--number);
+    }
+
+    /* ================= GRÁFICOS ================= */
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:20px;
+      margin-bottom:20px;
+    }
+
+    .box{
+      background: rgba(30,41,59,0.88);
+      backdrop-filter: blur(6px);
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 15px 35px rgba(0,0,0,.45);
+    }
+
+    .box h4{
+      margin:0 0 14px;
+      font-size:14px;
+      font-weight:600;
+    }
+
+    canvas{
+      width:100%!important;
+      height:300px!important;
+    }
+
+    /* ================= PICTOGRAMA ================= */
+    #pictogramaSexo{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      min-height:280px;
+      padding:0 30px;
+    }
+
+    footer{
+      text-align:center;
+      padding:18px;
+      color:#64748b;
+      font-size:13px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <img src="assets/logo-falcandra.png" alt="Falcandra Data Consulting">
+  <div>
+    <h1>Dashboard de Monitoria em Saúde</h1>
+    <span>Falcandra Data Consulting</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- FILTROS -->
+  <div class="filtros">
+    <div class="filtro-box">
+      <label>Fonte de Dados</label>
+      <input type="file" id="excelFile" accept=".xlsx,.xls">
+      <div class="fonte-descricao">
+        Carregue um ficheiro Excel (.xlsx) com dados de atendimentos em saúde,
+        incluindo data da consulta, sexo, província, distrito, serviço,
+        tipo de consulta e diagnóstico.
+      </div>
+    </div>
+
+    <div class="filtro-box"><label>Província</label><select id="filtroProvincia"></select></div>
+    <div class="filtro-box"><label>Distrito</label><select id="filtroDistrito"></select></div>
+    <div class="filtro-box"><label>Serviço</label><select id="filtroServico"></select></div>
+    <div class="filtro-box"><label>Ano</label><select id="filtroAno"></select></div>
+
+    <button class="download-btn" id="btnDownload" title="Baixar dashboard em PDF">
+      <i class="fa-solid fa-download"></i>
+    </button>
+  </div>
+
+  <!-- CARDS -->
+  <div class="cards">
+    <div class="card"><i class="fa-solid fa-users"></i><h3>Total Atendimentos</h3><span id="cardTotal">0</span></div>
+    <div class="card"><i class="fa-solid fa-stethoscope"></i><h3>Primeira Consulta</h3><span id="cardPrimeira">0</span></div>
+    <div class="card"><i class="fa-solid fa-rotate"></i><h3>Seguimento</h3><span id="cardSeguimento">0</span></div>
+    <div class="card"><i class="fa-solid fa-percent"></i><h3>Taxa Seguimento</h3><span id="cardTaxaSeguimento">0%</span></div>
+    <div class="card"><i class="fa-solid fa-heart-pulse"></i><h3>Retenção</h3><span id="cardRetencao">0%</span></div>
+  </div>
+
+  <!-- GRÁFICOS -->
+  <div class="box">
+    <h4>Atendimentos Mensais</h4>
+    <canvas id="grafMensal"></canvas>
+  </div>
+
+  <div class="grid">
+    <div class="box">
+      <h4>Distribuição por Sexo</h4>
+      <div id="pictogramaSexo"></div>
+    </div>
+
+    <div class="box">
+      <h4>Diagnósticos mais Frequentes</h4>
+      <canvas id="grafDiagnostico"></canvas>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="box"><h4>Produtividade por Médico</h4><canvas id="grafMedico"></canvas></div>
+    <div class="box"><h4>Produtividade por Serviço</h4><canvas id="grafServico"></canvas></div>
+  </div>
+
+  <div class="box">
+    <h4>Produtividade por Distrito</h4>
+    <canvas id="grafDistrito"></canvas>
+  </div>
+
+</div>
+
+<footer>
+  © Falcandra Data Consulting · HealthMonitor
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
