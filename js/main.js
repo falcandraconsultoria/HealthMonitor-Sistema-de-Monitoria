@@ -23,14 +23,23 @@ const cardTaxaSeguimento = document.getElementById("cardTaxaSeguimento");
 const cardRetencao = document.getElementById("cardRetencao");
 
 /* =========================================================
-   CORES (IDENTIDADE FINAL)
+   CORES (IDENTIDADE FINAL AJUSTADA)
 ========================================================= */
 const CORES = {
   medico: "#38BDF8",
   distrito: "#2DD4BF",
-  servico: "#10B981",        // VERDE ÚNICO
-  diagnostico: "#7C3AED",    // ROXO ÚNICO
-  sexo: ["#38BDF8","#818CF8"]
+  servico: "#10B981",
+  diagnostico: "#7C3AED",
+
+  // 🔹 SEXO (conforme prompt)
+  sexo: {
+    Feminino: "#8E24AA",
+    Masculino: "#2ED8C3"
+  },
+
+  // 🔹 ÁREA MENSAL
+  areaMensal: "rgba(46,216,195,0.35)",
+  linhaMensal: "#2ED8C3"
 };
 
 /* =========================================================
@@ -139,13 +148,16 @@ function atualizarIndicadores(d) {
 function renderizarGraficos(d) {
   destruirGraficos();
 
+  // 🔹 GRÁFICO DE ÁREA – ATENDIMENTOS MENSAIS
   criarGrafico("grafMensal","line",d.mensal,{
-    cor: CORES.medico,
-    preenchido: true
+    preenchido: true,
+    corArea: CORES.areaMensal,
+    corLinha: CORES.linhaMensal
   });
 
+  // 🔹 DISTRIBUIÇÃO POR SEXO (cores ajustadas)
   criarGrafico("grafSexo","doughnut",d.sexo,{
-    cores: CORES.sexo
+    cores: Object.keys(d.sexo).map(s => CORES.sexo[s] || "#999")
   });
 
   criarGrafico("grafDiagnostico","bar",d.diagnostico,{
@@ -158,7 +170,6 @@ function renderizarGraficos(d) {
     horizontal: true
   });
 
-  /* 🔹 AJUSTE PEDIDO */
   criarGrafico("grafServico","bar",d.servico,{
     corUnica: CORES.servico,
     horizontal: true
@@ -184,14 +195,14 @@ function criarGrafico(id,tipo,dados,cfg={}) {
         data: Object.values(dados),
         backgroundColor:
           tipo === "line"
-            ? "rgba(56,189,248,0.25)"
+            ? (cfg.corArea || "rgba(0,0,0,0.1)")
             : (cfg.corUnica || cfg.cores),
-        borderColor: cfg.cor || cfg.corUnica || "#38BDF8",
-        borderWidth: 0,
+        borderColor: cfg.corLinha || cfg.corUnica || "#38BDF8",
+        borderWidth: tipo === "line" ? 2 : 0,
         fill: cfg.preenchido || false,
         tension: 0.4,
         borderRadius: tipo === "bar" ? 8 : 0,
-        pointRadius: tipo === "line" ? 4 : 0
+        pointRadius: tipo === "line" ? 3 : 0
       }]
     },
     options:{
@@ -220,15 +231,13 @@ function destruirGraficos(){
 }
 
 /* =========================================================
-   AUXILIARES – LIMPEZA TOTAL DE UNDEFINED
+   AUXILIARES
 ========================================================= */
 function contar(d, c){
   return d.reduce((acc, row) => {
     if (!row[c]) return acc;
-
     const valor = String(row[c]).trim();
     if (!valor || valor.toLowerCase() === "undefined") return acc;
-
     acc[valor] = (acc[valor] || 0) + 1;
     return acc;
   }, {});
