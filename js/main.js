@@ -64,7 +64,7 @@ function inicializarFiltros() {
 }
 
 /* =========================================================
-   APLICAR FILTROS
+   APLICAR FILTROS (PROVÍNCIA → DISTRITO CORRIGIDO)
 ========================================================= */
 function aplicarFiltros() {
   let base = dadosOriginais;
@@ -129,11 +129,29 @@ function atualizarIndicadores(d) {
 function renderizarVisualizacoes(d) {
   destruirGraficos();
 
-  criarGrafico("grafMensal", "line", d.mensal, { area: true });
-  criarGrafico("grafDiagnostico", "bar", d.diagnostico, { cor:"#8E24AA", horizontal:true });
-  criarGrafico("grafMedico", "bar", d.medico, { cor:"#38BDF8", horizontal:true });
-  criarGrafico("grafServico", "bar", d.servico, { cor:"#2DD4BF", horizontal:true });
-  criarGrafico("grafDistrito", "bar", d.distrito, { cor:"#38BDF8" });
+  // 🔵 GRÁFICO DE ÁREA AZUL
+  criarGrafico("grafMensal", "line", d.mensal, {
+    area: true
+  });
+
+  criarGrafico("grafDiagnostico", "bar", d.diagnostico, {
+    cor:"#8E24AA",
+    horizontal:true
+  });
+
+  criarGrafico("grafMedico", "bar", d.medico, {
+    cor:"#38BDF8",
+    horizontal:true
+  });
+
+  criarGrafico("grafServico", "bar", d.servico, {
+    cor:"#2DD4BF",
+    horizontal:true
+  });
+
+  criarGrafico("grafDistrito", "bar", d.distrito, {
+    cor:"#38BDF8"
+  });
 
   renderizarPictogramaSexo(d.sexo);
 }
@@ -147,31 +165,26 @@ function renderizarPictogramaSexo(dados) {
   const feminino = dados["Feminino"] || 0;
   const masculino = dados["Masculino"] || 0;
 
-  const maxValor = Math.max(feminino, masculino);
+  const max = Math.max(feminino, masculino, 1);
 
-  criarBlocoSexo("Feminino", calcularIcones(feminino, maxValor), "#8E24AA");
+  criarBlocoSexo("Feminino", Math.round((feminino / max) * 50), "#8E24AA");
   criarValorCentralSexo(feminino, masculino);
-  criarBlocoSexo("Masculino", calcularIcones(masculino, maxValor), "#2ED8C3");
+  criarBlocoSexo("Masculino", Math.round((masculino / max) * 50), "#2ED8C3");
 }
 
-function calcularIcones(valor, maxValor) {
-  if (maxValor === 0) return 0;
-  return Math.round((valor / maxValor) * 50);
-}
-
-function criarBlocoSexo(label, totalIcones, cor) {
-  const wrapper = document.createElement("div");
-  wrapper.style.display = "flex";
-  wrapper.style.flexDirection = "column";
-  wrapper.style.alignItems = "center";
-  wrapper.style.minWidth = "160px";
+function criarBlocoSexo(label, total, cor) {
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.flexDirection = "column";
+  wrap.style.alignItems = "center";
+  wrap.style.minWidth = "160px";
 
   const grid = document.createElement("div");
   grid.style.display = "grid";
   grid.style.gridTemplateColumns = "repeat(5, 1fr)";
   grid.style.gap = "6px";
 
-  for (let i = 0; i < totalIcones; i++) {
+  for (let i = 0; i < total; i++) {
     const icon = document.createElement("i");
     icon.className = "fa-solid fa-person";
     icon.style.color = cor;
@@ -185,12 +198,12 @@ function criarBlocoSexo(label, totalIcones, cor) {
   nome.style.fontSize = "13px";
   nome.style.color = "#CBD5E1";
 
-  wrapper.appendChild(grid);
-  wrapper.appendChild(nome);
-  pictogramaSexo.appendChild(wrapper);
+  wrap.appendChild(grid);
+  wrap.appendChild(nome);
+  pictogramaSexo.appendChild(wrap);
 }
 
-function criarValorCentralSexo(feminino, masculino) {
+function criarValorCentralSexo(f, m) {
   const mid = document.createElement("div");
   mid.style.display = "flex";
   mid.style.alignItems = "center";
@@ -199,16 +212,16 @@ function criarValorCentralSexo(feminino, masculino) {
   mid.style.fontWeight = "800";
 
   mid.innerHTML = `
-    <span style="color:#8E24AA">${feminino}</span>
+    <span style="color:#8E24AA">${f}</span>
     <span style="color:#CBD5E1">–</span>
-    <span style="color:#2ED8C3">${masculino}</span>
+    <span style="color:#2ED8C3">${m}</span>
   `;
 
   pictogramaSexo.appendChild(mid);
 }
 
 /* =========================================================
-   GRÁFICOS
+   GRÁFICOS (BASE)
 ========================================================= */
 function criarGrafico(id, tipo, dados, cfg = {}) {
   const ctx = document.getElementById(id);
@@ -220,21 +233,26 @@ function criarGrafico(id, tipo, dados, cfg = {}) {
       labels: Object.keys(dados),
       datasets: [{
         data: Object.values(dados),
-        backgroundColor: tipo === "line" ? "rgba(46,216,195,0.35)" : cfg.cor,
-        borderColor: tipo === "line" ? "#22C1AE" : cfg.cor,
+        backgroundColor: tipo === "line"
+          ? "rgba(46,216,195,0.35)"
+          : cfg.cor,
+        borderColor: tipo === "line"
+          ? "#1FB6AA"
+          : cfg.cor,
         fill: cfg.area || false,
         tension: 0.4,
         pointRadius: tipo === "line" ? 3 : 0,
+        pointBackgroundColor: "#1FB6AA",
         borderRadius: 8
       }]
     },
     options: {
-      maintainAspectRatio:false,
+      maintainAspectRatio: false,
       indexAxis: cfg.horizontal ? "y" : "x",
-      plugins:{ legend:{ display:false }},
-      scales:{
-        x:{ grid:{ display:false }},
-        y:{ grid:{ display:false }, beginAtZero:true }
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { display: false }, beginAtZero: true }
       }
     }
   });
@@ -246,19 +264,17 @@ function destruirGraficos() {
 }
 
 /* =========================================================
-   DOWNLOAD PDF (SEGURO)
+   DOWNLOAD PDF
 ========================================================= */
-if (btnDownload) {
-  btnDownload.addEventListener("click", () => {
-    html2pdf().set({
-      margin: 0.5,
-      filename: "Dashboard_Monitoria_Saude.pdf",
-      image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, backgroundColor: "#0F172A" },
-      jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
-    }).from(document.querySelector(".container")).save();
-  });
-}
+btnDownload.addEventListener("click", () => {
+  html2pdf().set({
+    margin: 0.5,
+    filename: "Dashboard_Monitoria_Saude.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, backgroundColor: "#0F172A" },
+    jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
+  }).from(document.querySelector(".container")).save();
+});
 
 /* =========================================================
    AUXILIARES
