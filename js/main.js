@@ -23,6 +23,7 @@ const cardTaxaSeguimento = document.getElementById("cardTaxaSeguimento");
 const cardRetencao = document.getElementById("cardRetencao");
 
 const pictogramaSexo = document.getElementById("pictogramaSexo");
+const btnDownload = document.getElementById("btnDownload");
 
 /* =========================================================
    UPLOAD DO EXCEL
@@ -73,7 +74,7 @@ function aplicarFiltros() {
     base = base.filter(d => d.Provincia === filtroProvincia.value);
   }
 
-  // 🔧 CORRECÇÃO DO DISTRITO
+  // CORRECÇÃO DO FILTRO DISTRITO
   preencherSelect(filtroDistrito, "Distrito", base);
 
   const filtrados = base.filter(d => {
@@ -109,49 +110,49 @@ function atualizarIndicadores(d) {
   cardSeguimento.textContent = seguimento;
 
   cardTaxaSeguimento.textContent =
-    total ? ((seguimento/total)*100).toFixed(1)+"%" : "0%";
+    total ? ((seguimento / total) * 100).toFixed(1) + "%" : "0%";
 
   cardRetencao.textContent =
-    total ? ((d.filter(x=>x.Proxima_Consulta).length/total)*100).toFixed(1)+"%" : "0%";
+    total ? ((d.filter(x => x.Proxima_Consulta).length / total) * 100).toFixed(1) + "%" : "0%";
 
-  renderizarGraficos({
+  renderizarVisualizacoes({
     mensal: ordenarMeses(agruparMes(d)),
-    sexo: contar(d,"Sexo"),
-    diagnostico: contar(d,"Diagnostico"),
-    medico: contar(d,"Nome_Medico"),
-    distrito: contar(d,"Distrito"),
-    servico: contar(d,"Servico")
+    sexo: contar(d, "Sexo"),
+    diagnostico: contar(d, "Diagnostico"),
+    medico: contar(d, "Nome_Medico"),
+    distrito: contar(d, "Distrito"),
+    servico: contar(d, "Servico")
   });
 }
 
 /* =========================================================
-   GRÁFICOS + PICTOGRAMA
+   VISUALIZAÇÕES
 ========================================================= */
-function renderizarGraficos(d) {
+function renderizarVisualizacoes(d) {
   destruirGraficos();
 
-  criarGrafico("grafMensal","line",d.mensal,{
-    cor:"#2ED8C3",
-    preenchido:true
+  // Gráfico de área – Atendimentos Mensais
+  criarGrafico("grafMensal", "line", d.mensal, {
+    area: true
   });
 
-  criarGrafico("grafDiagnostico","bar",d.diagnostico,{
-    corUnica:"#8E24AA",
-    horizontal:true
+  criarGrafico("grafDiagnostico", "bar", d.diagnostico, {
+    cor: "#8E24AA",
+    horizontal: true
   });
 
-  criarGrafico("grafMedico","bar",d.medico,{
-    corUnica:"#38BDF8",
-    horizontal:true
+  criarGrafico("grafMedico", "bar", d.medico, {
+    cor: "#38BDF8",
+    horizontal: true
   });
 
-  criarGrafico("grafServico","bar",d.servico,{
-    corUnica:"#2DD4BF",
-    horizontal:true
+  criarGrafico("grafServico", "bar", d.servico, {
+    cor: "#2DD4BF",
+    horizontal: true
   });
 
-  criarGrafico("grafDistrito","bar",d.distrito,{
-    corUnica:"#38BDF8"
+  criarGrafico("grafDistrito", "bar", d.distrito, {
+    cor: "#38BDF8"
   });
 
   renderizarPictogramaSexo(d.sexo);
@@ -160,7 +161,7 @@ function renderizarGraficos(d) {
 /* =========================================================
    PICTOGRAMA POR SEXO (STACKED)
 ========================================================= */
-function renderizarPictogramaSexo(dados){
+function renderizarPictogramaSexo(dados) {
   pictogramaSexo.innerHTML = "";
 
   const feminino = dados["Feminino"] || 0;
@@ -168,19 +169,19 @@ function renderizarPictogramaSexo(dados){
 
   const escala = definirEscala(Math.max(feminino, masculino));
 
-  criarColuna("Feminino", feminino, "#8E24AA", escala);
-  criarValorCentral(feminino + masculino);
-  criarColuna("Masculino", masculino, "#2ED8C3", escala);
+  criarColunaSexo("Feminino", feminino, "#8E24AA", escala);
+  criarValorCentralSexo(feminino, masculino);
+  criarColunaSexo("Masculino", masculino, "#2ED8C3", escala);
 }
 
-function definirEscala(total){
+function definirEscala(total) {
   if (total < 100) return 2;
   if (total < 1000) return 20;
   if (total < 10000) return 200;
   return 2000;
 }
 
-function criarColuna(label, total, cor, escala){
+function criarColunaSexo(label, total, cor, escala) {
   const col = document.createElement("div");
   col.style.display = "flex";
   col.style.flexDirection = "column";
@@ -188,7 +189,7 @@ function criarColuna(label, total, cor, escala){
 
   const qtd = Math.ceil(total / escala);
 
-  for(let i=0;i<qtd;i++){
+  for (let i = 0; i < qtd; i++) {
     const icon = document.createElement("i");
     icon.className = "fa-solid fa-person";
     icon.style.color = cor;
@@ -206,100 +207,139 @@ function criarColuna(label, total, cor, escala){
   pictogramaSexo.appendChild(col);
 }
 
-function criarValorCentral(valor){
+function criarValorCentralSexo(feminino, masculino) {
   const mid = document.createElement("div");
-  mid.textContent = valor;
+  mid.style.display = "flex";
+  mid.style.alignItems = "center";
+  mid.style.gap = "8px";
   mid.style.fontSize = "28px";
   mid.style.fontWeight = "800";
-  mid.style.margin = "0 20px";
+
+  const fem = document.createElement("span");
+  fem.textContent = feminino;
+  fem.style.color = "#8E24AA";
+
+  const sep = document.createElement("span");
+  sep.textContent = "–";
+  sep.style.color = "#CBD5E1";
+
+  const masc = document.createElement("span");
+  masc.textContent = masculino;
+  masc.style.color = "#2ED8C3";
+
+  mid.appendChild(fem);
+  mid.appendChild(sep);
+  mid.appendChild(masc);
+
   pictogramaSexo.appendChild(mid);
 }
 
 /* =========================================================
-   GRÁFICOS BASE
+   GRÁFICOS (BASE)
 ========================================================= */
-function criarGrafico(id,tipo,dados,cfg={}){
+function criarGrafico(id, tipo, dados, cfg = {}) {
   const ctx = document.getElementById(id);
-  if(!ctx || !Object.keys(dados).length) return;
+  if (!ctx || !Object.keys(dados).length) return;
 
-  charts[id] = new Chart(ctx,{
-    type:tipo,
-    data:{
-      labels:Object.keys(dados),
-      datasets:[{
-        data:Object.values(dados),
-        backgroundColor: tipo==="line"
+  charts[id] = new Chart(ctx, {
+    type: tipo,
+    data: {
+      labels: Object.keys(dados),
+      datasets: [{
+        data: Object.values(dados),
+        backgroundColor: tipo === "line"
           ? "rgba(46,216,195,0.35)"
-          : cfg.corUnica,
-        borderColor: cfg.corUnica,
-        fill: cfg.preenchido || false,
-        tension:0.4,
-        borderRadius:8,
-        pointRadius:4
+          : cfg.cor,
+        borderColor: tipo === "line"
+          ? "#22C1AE"
+          : cfg.cor,
+        fill: cfg.area || false,
+        tension: 0.4,
+        pointRadius: tipo === "line" ? 3 : 0,
+        pointBackgroundColor: "#22C1AE",
+        borderRadius: 8
       }]
     },
-    options:{
-      maintainAspectRatio:false,
+    options: {
+      maintainAspectRatio: false,
       indexAxis: cfg.horizontal ? "y" : "x",
-      plugins:{ legend:{ display:false }},
-      scales:{ x:{grid:{display:false}}, y:{grid:{display:false}} }
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { display: false }, beginAtZero: true }
+      }
     }
   });
 }
 
-function destruirGraficos(){
-  Object.values(charts).forEach(c=>c.destroy());
-  charts={};
+function destruirGraficos() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
 }
+
+/* =========================================================
+   DOWNLOAD PDF (PÁGINA TODA)
+========================================================= */
+btnDownload.addEventListener("click", () => {
+  const area = document.querySelector(".container");
+
+  html2pdf().set({
+    margin: 0.5,
+    filename: "Dashboard_Monitoria_Saude.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, backgroundColor: "#0F172A" },
+    jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
+  }).from(area).save();
+});
 
 /* =========================================================
    AUXILIARES
 ========================================================= */
-function contar(d,c){
-  return d.reduce((a,r)=>{
-    if(!r[c]) return a;
-    a[r[c]]=(a[r[c]]||0)+1;
+function contar(d, c) {
+  return d.reduce((a, r) => {
+    if (!r[c]) return a;
+    a[r[c]] = (a[r[c]] || 0) + 1;
     return a;
-  },{});
+  }, {});
 }
 
-function agruparMes(d){
-  const r={};
-  d.forEach(x=>{
-    const dt=normalizarData(x.Data_Consulta);
-    if(!dt) return;
-    const k=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}`;
-    r[k]=(r[k]||0)+1;
+function agruparMes(d) {
+  const r = {};
+  d.forEach(x => {
+    const dt = normalizarData(x.Data_Consulta);
+    if (!dt) return;
+    const k = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+    r[k] = (r[k] || 0) + 1;
   });
   return r;
 }
 
-function ordenarMeses(o){
+function ordenarMeses(o) {
   return Object.fromEntries(Object.entries(o).sort());
 }
 
-function normalizarData(v){
-  if(!v) return null;
-  if(typeof v==="number")
-    return new Date((v-25569)*86400*1000);
-  const d=new Date(v);
-  return isNaN(d)?null:d;
+function normalizarData(v) {
+  if (!v) return null;
+  if (typeof v === "number")
+    return new Date((v - 25569) * 86400 * 1000);
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
 }
 
-function preencherSelect(select,campo,base=dadosOriginais){
-  const vals=[...new Set(base.map(x=>x[campo]).filter(Boolean))];
-  select.innerHTML=`<option value="">Todos</option>`+
-    vals.map(v=>`<option value="${v}">${v}</option>`).join("");
+function preencherSelect(select, campo, base = dadosOriginais) {
+  const vals = [...new Set(base.map(x => x[campo]).filter(Boolean))];
+  select.innerHTML = `<option value="">Todos</option>` +
+    vals.map(v => `<option value="${v}">${v}</option>`).join("");
 }
 
-function preencherSelectAno(){
-  const anos=[...new Set(dadosOriginais.map(x=>{
-    const d=normalizarData(x.Data_Consulta);
-    return d?d.getFullYear():null;
+function preencherSelectAno() {
+  const anos = [...new Set(dadosOriginais.map(x => {
+    const d = normalizarData(x.Data_Consulta);
+    return d ? d.getFullYear() : null;
   }).filter(Boolean))];
 
-  filtroAno.innerHTML=`<option value="">Todos</option>`+
-    anos.sort().map(a=>`<option value="${a}">${a}</option>`).join("");
+  filtroAno.innerHTML = `<option value="">Todos</option>` +
+    anos.sort().map(a => `<option value="${a}">${a}</option>`).join("");
 }
 
 });
